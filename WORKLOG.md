@@ -156,23 +156,39 @@
 
 ---
 
-## Chat Normalized Structure
+## Chat Normalized Structure (Live)
 
 ```
-01M121CFA4A4D7NQEYJ4920NE3  Ollama Launch / Harness Research
-└── 01M1216YX3VPWHPPRDRFZNJNGB  00-root-ollama-launch-harness-research
-    ├── 01M12GMSN5E1KTB2AVNAZPPSXN  10-git-worktree
-    ├── 01M12GMSPA3BF57K4CZSWJ4598  20-zbst-tech-subagents
-    ├── 01M12GMSQPZ9779ADG6M1RQDQZ  30-local-inference
-    ├── 01M12GMSRQZ5RJ7MVBD7YK33YT  40-raycast-integration
-    ├── 01M12GMSSKEJR2DV50CE2T44JW  50-worker-agent
-    ├── 01M12GMSTD5D9W456JWM5RQ2S2  60-terminal-automation
-    ├── 01M12GMSW2XNG0ZSKWF5DZJTP6  70-manifest-notes
-    ├── 01M12GMSXD73GJ6YFT91M8DWK3  80-comparison-matrix
-    └── 01M12GPBPS61B2XSPMVHNPFFFJ  90-notes-and-findings
+Folder: 01M121CFA4A4D7NQEYJ4920NE3  Ollama Launch / Harness Research
+
+├── 01M1216YX3VPWHPPRDRFZNJNGB  00-root-ollama-launch-harness-research
+│
+├── 01M12GMSN5E1KTB2AVNAZPPSXN  10-git-worktree
+├── 01M12GMSPA3BF57K4CZSWJ4598  20-zbst-tech-subagents
+├── 01M12GMSQPZ9779ADG6M1RQDQZ  30-local-inference
+├── 01M12GMSRQZ5RJ7MVBD7YK33YT  40-raycast-integration
+├── 01M12GMSSKEJR2DV50CE2T44JW  50-worker-agent
+├── 01M12GMSTD5D9W456JWM5RQ2S2  60-terminal-automation
+├── 01M12GMSW2XNG0ZSKWF5DZJTP6  70-manifest-notes
+├── 01M12GMSXD73GJ6YFT91M8DWK3  80-comparison-matrix
+└── 01M12GPBPS61B2XSPMVHNPFFFJ  90-notes-and-findings
 ```
 
-All 9 branches created 2026-08-27 21:05 UTC via `chat__branch-chat` off root, renamed, and moved into the folder. Each branch inherits full root history as context and can now be worked independently.
+**All 9 branches created 2026-08-27 21:05 UTC** via `chat__branch-chat` off root, renamed to `NN-slug` titles, and moved into the folder. Each branch inherits full root history as context and is ready for independent focused work.
+
+## Branch Chat IDs & Focus
+
+| Chat ID | Title | Focus Area |
+|---|---|---|
+| `01M12GMSN5E1KTB2AVNAZPPSXN` | `10-git-worktree` | Worktree scaffolding, best practices, gotchas |
+| `01M12GMSPA3BF57K4CZSWJ4598` | `20-zbst-tech-subagents` | Subagent taxonomy, routing, handoff logic |
+| `01M12GMSQPZ9779ADG6M1RQDQZ` | `30-local-inference` | Model routing policy, fallback chain, benchmarking |
+| `01M12GMSRQZ5RJ7MVBD7YK33YT` | `40-raycast-integration` | Raycast commands, chat ops, folder mgmt |
+| `01M12GMSSKEJR2DV50CE2T44JW` | `50-worker-agent` | Durable state, callable RPC, Agents SDK |
+| `01M12GMSTD5D9W456JWM5RQ2S2` | `60-terminal-automation` | Safe shell ops, worktree lifecycle, cleanup |
+| `01M12GMSW2XNG0ZSKWF5DZJTP6` | `70-manifest-notes` | Tree export, drift detection, sync logic |
+| `01M12GMSXD73GJ6YFT91M8DWK3` | `80-comparison-matrix` | Decision matrix, tradeoff analysis |
+| `01M12GPBPS61B2XSPMVHNPFFFJ` | `90-notes-and-findings` | Scratch, open questions, risks, actions |
 
 ---
 
