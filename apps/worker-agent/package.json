@@ -11,6 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "agents": "workspace:*",
     "zbst-tech-subagents": "workspace:*"
   },
   "devDependencies": {

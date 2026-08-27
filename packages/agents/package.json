@@ -1,0 +1,9 @@
+{
+  "name": "agents",
+  "version": "0.1.0",
+  "description": "Stub for Cloudflare Agents SDK",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
+}
