@@ -1,0 +1,19 @@
+{
+  "treeId": "raycast-agent-orchestration-v1",
+  "name": "raycast-agent-orchestration",
+  "rootId": "00-root",
+  "createdAt": "2026-08-27T21:05:00Z",
+  "updatedAt": "2026-08-27T21:05:00Z",
+  "branches": [
+    { "prefix": "00-", "title": "root" },
+    { "prefix": "10-", "title": "git-worktree" },
+    { "prefix": "20-", "title": "zbst-tech-subagents" },
+    { "prefix": "30-", "title": "local-inference" },
+    { "prefix": "40-", "title": "raycast-integration" },
+    { "prefix": "50-", "title": "worker-agent" },
+    { "prefix": "60-", "title": "terminal-automation" },
+    { "prefix": "70-", "title": "manifest-notes" },
+    { "prefix": "80-", "title": "comparison-matrix" },
+    { "prefix": "90-", "title": "notes-and-findings" }
+  ]
+}

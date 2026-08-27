@@ -1,0 +1,22 @@
+{
+  "name": "worker-agent",
+  "version": "0.1.0",
+  "description": "zbst.tech orchestrator agent backend",
+  "main": "src/agent.ts",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "zbst-tech-subagents": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.50.0",
+    "vitest": "^1.0.0"
+  }
+}

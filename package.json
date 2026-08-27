@@ -1,0 +1,19 @@
+{
+  "name": "raycast-agent-orchestration",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/raycast-extension",
+    "apps/worker-agent",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter worker-agent dev",
+    "deploy": "pnpm --filter worker-agent deploy",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "pnpm": "^8.0.0"
+  }
+}

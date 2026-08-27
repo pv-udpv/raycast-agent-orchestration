@@ -1,0 +1,4 @@
+packages:
+  - 'apps/raycast-extension'
+  - 'apps/worker-agent'
+  - 'packages/*'
