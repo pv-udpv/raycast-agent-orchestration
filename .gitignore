@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git worktrees (separate repos)
+worktrees/wt-*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime
+.wrangler/
+.wrangler.toml
+wrangler.lock
