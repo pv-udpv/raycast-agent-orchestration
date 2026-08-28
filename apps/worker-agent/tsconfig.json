@@ -8,19 +8,22 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./.",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true,
     "paths": {
-      "~/*": ["./*"],
-      "@types/*": ["../../../node_modules/@types/*"]
+      "agents": ["../../packages/agents/index.ts"],
+      "zbst-tech-subagents": ["../../packages/zbst-tech/src/subagents.ts"],
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "worker-configuration.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
