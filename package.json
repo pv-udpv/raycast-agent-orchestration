@@ -1,19 +1,26 @@
 {
   "name": "raycast-agent-orchestration",
   "version": "0.1.0",
+  "description": "Raycast agent orchestration system for chat-tree branching, git worktrees, subagents, local inference",
+  "type": "module",
   "private": true,
   "workspaces": [
-    "apps/raycast-extension",
-    "apps/worker-agent",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm --filter worker-agent dev",
-    "deploy": "pnpm --filter worker-agent deploy",
-    "test": "pnpm -r test"
+    "bootstrap": "bash scripts/bootstrap-full.sh",
+    "export-manifest": "ts-node scripts/export-manifest.ts",
+    "sync-tree": "ts-node scripts/sync-tree.ts",
+    "validate": "ts-node scripts/validate-tree.ts",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "pnpm": "^8.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

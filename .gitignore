@@ -1,14 +1,14 @@
 # Dependencies
 node_modules/
-.pnpm-store/
-.yarn/
+pnpm-lock.yaml
+npm-lock.json
+yarn.lock
+
+# Build
 dist/
 build/
-
-# Environment
-.env
-.env.local
-.env.*.local
+.turbo/
+out/
 
 # IDE
 .vscode/
@@ -18,14 +18,19 @@ build/
 *~
 .DS_Store
 
-# Git worktrees (separate repos)
-worktrees/wt-*
+# Environment
+.env
+.env.local
+.env.*.local
 
-# Logs
-*.log
-npm-debug.log*
+# Temp
+.cache/
+tmp/
+temp/
 
-# Runtime
+# Worktree lock files
+.git/worktrees/*/locked
+
+# Wrangler
 .wrangler/
-.wrangler.toml
-wrangler.lock
+worktrees/
