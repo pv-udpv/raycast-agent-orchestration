@@ -1,23 +1,21 @@
 {
   "name": "worker-agent",
   "version": "0.1.0",
-  "description": "zbst.tech orchestrator agent backend",
+  "description": "Cloudflare Agents SDK supervisor for Raycast orchestrator",
+  "type": "module",
   "main": "src/agent.ts",
-  "scripts": {
-    "dev": "wrangler dev --local",
-    "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
-    "build": "tsc",
-    "test": "vitest"
-  },
   "dependencies": {
     "agents": "workspace:*",
-    "zbst-tech-subagents": "workspace:*"
+    "@cloudflare/workers-types": "^4.20240919.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.3.0",
-    "wrangler": "^3.50.0",
-    "vitest": "^1.0.0"
+    "typescript": "^5.2.2",
+    "wrangler": "^3.0.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "type-check": "tsc --noEmit"
   }
 }
