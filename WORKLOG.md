@@ -206,3 +206,56 @@ Folder: 01M121CFA4A4D7NQEYJ4920NE3  Ollama Launch / Harness Research
 ---
 
 **Status:** Chat tree fully materialized. Repo scaffolding complete. Next: populate individual branches (starting with `10-git-worktree`) or execute `bootstrap-full.sh` + initial commit.
+
+---
+
+## Phase 9: Chat Branching Execution (21:05–21:06)
+
+### Request
+- Actually branch the chat into the 9 planned sub-chats
+
+### Outputs
+- ✓ 9 branches created off `00-root-ollama-launch-harness-research`
+- ✓ Each renamed to its `NN-slug` target title
+- ✓ Each moved into `Ollama Launch / Harness Research` folder
+- ✓ Chat tree now matches repo/worklog plan 1:1
+
+---
+
+## Phase 10: Smoke Test & RPC Wiring (21:06–21:25)
+
+### Request
+- Scaffold local dev environment for `wrangler dev --local`
+- Wire actual Durable Object RPC dispatch
+
+### Scaffolding Complete
+
+- Created `packages/agents` stub for local development
+- Added `pnpm-workspace.yaml` and root `package.json`
+- Added `apps/worker-agent/package.json` and `tsconfig.json`
+- Created `scripts/smoke-test.sh` test harness
+- Documented in `SMOKE_TEST_RESULTS.md`
+
+### RPC Wiring Complete
+
+- Implemented `RpcEnabledAgent` base class (generic fetch handler)
+- All 8 subagents now inherit RPC HTTP interface
+- Supervisor.dispatch() wires to actual DO namespaces
+- Each subagent fetch handler routes to @callable methods
+- Added logging at each phase and dispatch point
+- Handler exposes /health, /, and /agents/* routes
+
+### Git Commits
+
+- `beb5c05` — smoke test setup, agents stub, workspace config
+- `c05814b` — raycast extension commands + RPC client libs
+
+### Current Status
+
+- ✓ Supervisor → RPC dispatch wired
+- ✓ All 8 subagents have fetch handlers
+- ✓ Ready for wrangler dev --local test
+- ✓ Raycast extension 5 commands drafted
+- ⏳ Full pnpm install blocked by network; can proceed locally with wrangler bundler
+
+Next: Execute wrangler dev --local and test /health, /agents endpoints
