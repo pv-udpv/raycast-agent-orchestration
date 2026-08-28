@@ -1,0 +1,147 @@
+{
+  "treeId": "raycast-agent-orchestration-root",
+  "name": "raycast-agent-orchestration",
+  "version": "1.0.0",
+  "createdAt": "2026-08-27T21:06:00Z",
+  "updatedAt": "2026-08-27T21:10:00Z",
+  "rootId": "00-root",
+  "nodes": {
+    "00-root": {
+      "id": "00-root",
+      "prefix": "00-",
+      "title": "root-ollama-launch-harness-research",
+      "type": "root",
+      "description": "Canonical root for Raycast agent orchestration workload",
+      "parentId": null,
+      "children": [
+        "10-git-worktree",
+        "20-zbst-tech-subagents",
+        "30-local-inference",
+        "40-raycast-integration",
+        "50-worker-agent",
+        "60-terminal-automation",
+        "70-manifest-notes",
+        "80-comparison-matrix",
+        "90-notes-and-findings"
+      ],
+      "chatId": "01M1216YX3VPWHPPRDRFZNJNGB",
+      "worktreeId": null,
+      "done": false
+    },
+    "10-git-worktree": {
+      "id": "10-git-worktree",
+      "prefix": "10-",
+      "title": "git-worktree",
+      "type": "branch",
+      "description": "Git worktree strategy, layout, cleanup policy",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSN5E1KTB2AVNAZPPSXN",
+      "worktreeId": "wt-10-git-worktree",
+      "done": false
+    },
+    "20-zbst-tech-subagents": {
+      "id": "20-zbst-tech-subagents",
+      "prefix": "20-",
+      "title": "zbst-tech-subagents",
+      "type": "branch",
+      "description": "Supervisor + specialist subagents, routing matrix, handoff graph",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSPA3BF57K4CZSWJ4598",
+      "worktreeId": "wt-20-zbst-tech-subagents",
+      "done": false
+    },
+    "30-local-inference": {
+      "id": "30-local-inference",
+      "prefix": "30-",
+      "title": "local-inference",
+      "type": "branch",
+      "description": "Local model routing, fallback chain, benchmarking",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSQPZ9779ADG6M1RQDQZ",
+      "worktreeId": "wt-30-local-inference",
+      "done": false
+    },
+    "40-raycast-integration": {
+      "id": "40-raycast-integration",
+      "prefix": "40-",
+      "title": "raycast-integration",
+      "type": "branch",
+      "description": "Raycast commands, chat operations, manifest export",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSRQZ5RJ7MVBD7YK33YT",
+      "worktreeId": "wt-40-raycast-integration",
+      "done": false
+    },
+    "50-worker-agent": {
+      "id": "50-worker-agent",
+      "prefix": "50-",
+      "title": "worker-agent",
+      "type": "branch",
+      "description": "Cloudflare Agents SDK, durable state, RPC",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSSKEJR2DV50CE2T44JW",
+      "worktreeId": "wt-50-worker-agent",
+      "done": false
+    },
+    "60-terminal-automation": {
+      "id": "60-terminal-automation",
+      "prefix": "60-",
+      "title": "terminal-automation",
+      "type": "branch",
+      "description": "Safe shell operations, worktree automation, bootstrap",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSTD5D9W456JWM5RQ2S2",
+      "worktreeId": "wt-60-terminal-automation",
+      "done": false
+    },
+    "70-manifest-notes": {
+      "id": "70-manifest-notes",
+      "prefix": "70-",
+      "title": "manifest-notes",
+      "type": "branch",
+      "description": "Tree export, sync, drift detection",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSW2XNG0ZSKWF5DZJTP6",
+      "worktreeId": "wt-70-manifest-notes",
+      "done": false
+    },
+    "80-comparison-matrix": {
+      "id": "80-comparison-matrix",
+      "prefix": "80-",
+      "title": "comparison-matrix",
+      "type": "branch",
+      "description": "Tradeoff analysis, final recommendations",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GMSXD73GJ6YFT91M8DWK3",
+      "worktreeId": "wt-80-comparison-matrix",
+      "done": false
+    },
+    "90-notes-and-findings": {
+      "id": "90-notes-and-findings",
+      "prefix": "90-",
+      "title": "notes-and-findings",
+      "type": "branch",
+      "description": "Scratch, open questions, action items",
+      "parentId": "00-root",
+      "children": [],
+      "chatId": "01M12GPBPS61B2XSPMVHNPFFFJ",
+      "worktreeId": "wt-90-notes-and-findings",
+      "done": false
+    }
+  },
+  "stats": {
+    "totalNodes": 10,
+    "rootNodes": 1,
+    "branchNodes": 9,
+    "doneNodes": 0,
+    "maxDepth": 2
+  }
+}
