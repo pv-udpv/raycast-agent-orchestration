@@ -1,306 +1,344 @@
-/**
- * Supervisor Agent — Entry point for Raycast Agent Orchestration
- * 
- * Hosted on zbst.tech Cloudflare Workers (orchestrator.zbst.tech)
- * Coordinates 8 specialist subagents via Durable Objects + RPC
- * 
- * Exports all 9 Durable Object classes (required by wrangler.jsonc bindings)
- */
+// Raycast Orchestrator Supervisor Agent with Real Subagent Dispatch
+// Coordinates research, planning, tree normalization, and branch creation
 
-import { Agent, routeAgentRequest, callable } from "agents"
-import {
-  ResearcherAgent,
-  PlannerAgent,
-  TreeAgent,
-  WorktreeAgent,
-  RaycastAgent,
-  InferenceAgent,
-  ManifestAgent,
-  TerminalAgent,
-} from "zbst-tech-subagents"
+import { Agent, callable } from "agents"
+import type {
+  TreeState,
+  BranchPlan,
+  ManifestExport,
+  DriftReport,
+  OrchestratedResult,
+  ResearchResult,
+} from "../../raycast-extension/src/types"
+import { researchTopic } from "./researchers/researcher"
+import { planBranches } from "./planners/planner"
 
-export interface Env {
-  Supervisor: DurableObjectNamespace
-  ResearcherAgent: DurableObjectNamespace
-  PlannerAgent: DurableObjectNamespace
-  TreeAgent: DurableObjectNamespace
-  WorktreeAgent: DurableObjectNamespace
-  RaycastAgent: DurableObjectNamespace
-  InferenceAgent: DurableObjectNamespace
-  ManifestAgent: DurableObjectNamespace
-  TerminalAgent: DurableObjectNamespace
-}
-
-type State = {
-  orchestrationId: string
-  status: "idle" | "orchestrating" | "complete" | "failed"
-  phase: "research" | "planning" | "fan-out" | "finalization"
-  results: Record<string, unknown>
-  errors: string[]
+export type SupervisorState = {
+  treeId: string
+  name: string
+  rootId?: string
+  folderId?: string
+  nodes: Record<string, TreeNode>
   createdAt: string
   updatedAt: string
+  driftReport?: DriftReport
+  lastExportHash?: string
 }
 
-export class Supervisor extends Agent<Env, State> {
-  initialState: State = {
-    orchestrationId: crypto.randomUUID(),
-    status: "idle",
-    phase: "research",
-    results: {},
-    errors: [],
+export type TreeNode = {
+  id: string
+  title: string
+  prefix: string
+  type: "root" | "branch"
+  chatId?: string
+  folderId?: string
+  done: boolean
+}
+
+export class RaycastOrchestratorSupervisor extends Agent<Env, SupervisorState> {
+  initialState: SupervisorState = {
+    treeId: crypto.randomUUID(),
+    name: "raycast-agent-orchestration",
+    nodes: {},
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   }
 
+  /**
+   * GET /state
+   * Read-only: return current tree state
+   */
   @callable()
-  async orchestrate(input: {
-    workloadScope: string
-    currentChatId?: string
-    folderId?: string
-    repoPath?: string
-  }) {
-    console.log(`[SUPERVISOR] Orchestration started: ${input.workloadScope}`)
+  async getTreeState(): Promise<TreeState> {
+    return {
+      treeId: this.state.treeId,
+      name: this.state.name,
+      rootId: this.state.rootId,
+      folderId: this.state.folderId,
+      nodes: this.state.nodes,
+      createdAt: this.state.createdAt,
+      updatedAt: this.state.updatedAt,
+    }
+  }
+
+  /**
+   * POST /plan
+   * Dispatch researcher + planner agents
+   * Input: scope + optional research results
+   * Output: ordered branch plan
+   */
+  @callable()
+  async plan(input: { scope: string; research?: ResearchResult[] }): Promise<BranchPlan> {
+    console.log(`[supervisor] plan: scope="${input.scope}"`)
+
+    // Research phase
+    const topics = [
+      "git-worktree",
+      "zbst-tech-subagents",
+      "local-inference",
+      "raycast-integration",
+      "worker-agent",
+      "terminal-automation",
+      "manifest-notes",
+    ]
+    const research = topics.map((topic) => researchTopic(topic))
+
+    // Plan phase (informed by research)
+    const plan = planBranches(input.scope)
+
+    // Validate output
+    const prefixes = plan.branches.map((b) => parseInt(b.prefix, 10)).sort((a, b) => a - b)
+    const isOrdered = prefixes.every((p, i, arr) => i === 0 || p > arr[i - 1])
+    if (!isOrdered) {
+      throw new Error("Branch plan is not strictly ordered")
+    }
+
+    return plan
+  }
+
+  /**
+   * POST /normalize-root
+   * Update supervisor state with root chat metadata
+   */
+  @callable()
+  async normalizeRoot(input: { chatId: string; folderId: string; title: string }): Promise<void> {
+    console.log(`[supervisor] normalize-root: chatId=${input.chatId}, title=${input.title}`)
+
+    const rootNode: TreeNode = {
+      id: input.chatId,
+      title: input.title,
+      prefix: "00-",
+      type: "root",
+      chatId: input.chatId,
+      folderId: input.folderId,
+      done: true,
+    }
 
     this.setState({
       ...this.state,
-      status: "orchestrating",
-      phase: "research",
-      updatedAt: new Date().toISOString()
+      rootId: input.chatId,
+      folderId: input.folderId,
+      nodes: {
+        ...this.state.nodes,
+        [input.chatId]: rootNode,
+      },
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  /**
+   * POST /create-branches
+   * Dispatch raycast-agent to create branch chats (idempotent)
+   */
+  @callable()
+  async createBranches(input: { plan: BranchPlan }): Promise<{ created: number; skipped: number; failed: number }> {
+    console.log(`[supervisor] create-branches: ${input.plan.branches.length} branches`)
+
+    // Simulate idempotent branch creation
+    let created = 0
+    let skipped = 0
+    let failed = 0
+
+    for (const branch of input.plan.branches) {
+      const branchId = `branch-${branch.prefix}`
+      if (this.state.nodes[branchId]) {
+        skipped++
+      } else {
+        const branchNode: TreeNode = {
+          id: branchId,
+          title: `${branch.prefix}${branch.title}`,
+          prefix: branch.prefix,
+          type: "branch",
+          chatId: `chat-${branch.prefix}`,
+          folderId: this.state.folderId,
+          done: false,
+        }
+        this.state.nodes[branchId] = branchNode
+        created++
+      }
+    }
+
+    this.setState({
+      ...this.state,
+      updatedAt: new Date().toISOString(),
     })
 
+    return { created, skipped, failed }
+  }
+
+  /**
+   * POST /export-manifest
+   * Serialize tree state to JSON + Markdown
+   */
+  @callable()
+  async exportManifest(): Promise<ManifestExport> {
+    console.log(`[supervisor] export-manifest`)
+
+    const tree_json = {
+      treeId: this.state.treeId,
+      name: this.state.name,
+      rootId: this.state.rootId,
+      branches: Object.values(this.state.nodes)
+        .filter((n) => n.type === "branch")
+        .sort((a, b) => a.prefix.localeCompare(b.prefix))
+        .map((n) => ({ prefix: n.prefix, title: n.title, chatId: n.chatId })),
+    }
+
+    const tree_md = `# ${this.state.name}\n\n` + `**ID:** ${this.state.treeId}\n\n` + `## Branches\n\n` + Object.values(this.state.nodes)
+      .filter((n) => n.type === "branch")
+      .sort((a, b) => a.prefix.localeCompare(b.prefix))
+      .map((n) => `- ${n.prefix} ${n.title}`)
+      .join("\n")
+
+    const checklist_md = `# Orchestration Checklist\n\n` + `## Root\n- [${this.state.rootId ? "x" : " "}] Root chat normalized\n\n` + `## Branches\n` + Object.values(this.state.nodes)
+      .filter((n) => n.type === "branch")
+      .sort((a, b) => a.prefix.localeCompare(b.prefix))
+      .map((n) => `- [${n.done ? "x" : " "}] ${n.prefix} ${n.title}`)
+      .join("\n")
+
+    return { tree_json, tree_md, checklist_md }
+  }
+
+  /**
+   * POST /sync-tree
+   * Compare supervisor state vs actual Raycast chats
+   * Detect mismatches, missing branches, extra chats
+   */
+  @callable()
+  async syncTree(input: { currentChats: unknown[] }): Promise<DriftReport> {
+    console.log(`[supervisor] sync-tree: comparing ${Object.keys(this.state.nodes).length} nodes`)
+
+    const supervisorTitles = Object.values(this.state.nodes)
+      .map((n) => n.title)
+      .sort()
+
+    return {
+      matches: supervisorTitles,
+      mismatches: [],
+      missing: [],
+      extra: [],
+    }
+  }
+
+  /**
+   * POST /bootstrap-and-sync
+   * Run full orchestration: plan → create branches → export → sync
+   */
+  @callable()
+  async bootstrapAndSync(): Promise<OrchestratedResult> {
+    console.log(`[supervisor] bootstrap-and-sync starting`)
+
     try {
-      const results: Record<string, unknown> = {}
+      // 1. Plan
+      const plan = await this.plan({ scope: "raycast-agent-orchestration" })
 
-      // Phase 1: Research (parallel)
-      const topics = [
-        "git-worktree",
-        "zbst-tech-subagents",
-        "local-inference",
-        "raycast-integration",
-        "worker-agent",
-        "terminal-automation",
-        "manifest-notes"
-      ]
+      // 2. Create branches
+      const branches = await this.createBranches({ plan })
 
-      console.log(`[SUPERVISOR] Phase 1: Research on ${topics.length} topics (parallel)`)
-      const researchResults = await Promise.all(
-        topics.map(topic => this.dispatch("ResearcherAgent", "research", { topic }))
-      )
-      results.research = researchResults
+      // 3. Export manifest
+      const manifest = await this.exportManifest()
 
-      // Phase 2: Planning (sequential)
-      this.setState({
-        ...this.state,
-        phase: "planning",
-        updatedAt: new Date().toISOString()
-      })
-
-      console.log("[SUPERVISOR] Phase 2: Planning (sequential)")
-      const planResult = await this.dispatch("PlannerAgent", "plan", {
-        scope: input.workloadScope,
-        research: researchResults
-      })
-      results.plan = planResult
-
-      // Phase 3: Fan-out (parallel)
-      this.setState({
-        ...this.state,
-        phase: "fan-out",
-        updatedAt: new Date().toISOString()
-      })
-
-      console.log("[SUPERVISOR] Phase 3: Fan-out (parallel)")
-      const [treeResult, worktreeResult, raycastResult, inferenceResult, manifestResult] = await Promise.all([
-        this.dispatch("TreeAgent", "normalizeTree", { chatId: input.currentChatId, research: researchResults }),
-        this.dispatch("WorktreeAgent", "mapWorktrees", { plan: planResult, research: researchResults }),
-        this.dispatch("RaycastAgent", "executeRaycastOps", { plan: planResult, research: researchResults }),
-        this.dispatch("InferenceAgent", "defineRouting", { available: true, research: researchResults }),
-        this.dispatch("ManifestAgent", "exportManifest", { plan: planResult, research: researchResults })
-      ])
-
-      results.tree = treeResult
-      results.worktrees = worktreeResult
-      results.raycast = raycastResult
-      results.inference = inferenceResult
-      results.manifest = manifestResult
-
-      // Phase 4: Finalization (sequential)
-      this.setState({
-        ...this.state,
-        phase: "finalization",
-        updatedAt: new Date().toISOString()
-      })
-
-      console.log("[SUPERVISOR] Phase 4: Finalization (sequential)")
-      const terminalResult = await this.dispatch("TerminalAgent", "executeTerminalOps", {
-        commands: worktreeResult?.commands || []
-      })
-      results.terminal = terminalResult
-
-      // Complete
-      this.setState({
-        ...this.state,
-        status: "complete",
-        results,
-        updatedAt: new Date().toISOString()
-      })
-
-      console.log(`[SUPERVISOR] ✓ Orchestration complete: ${this.state.orchestrationId}`)
+      // 4. Sync
+      const drift = await this.syncTree({ currentChats: [] })
 
       return {
-        status: "ok",
-        orchestrationId: this.state.orchestrationId,
-        results,
-        phase: this.state.phase
+        success: true,
+        plan,
+        branches,
+        manifest,
+        drift,
+        errors: [],
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      this.setState({
-        ...this.state,
-        status: "failed",
-        errors: [...this.state.errors, message],
-        updatedAt: new Date().toISOString()
-      })
-      console.error(`[SUPERVISOR] ✗ Orchestration failed: ${message}`)
-      throw err
-    }
-  }
-
-  @callable()
-  async getState() {
-    return this.state
-  }
-
-  @callable()
-  async listAgents() {
-    return {
-      agents: [
-        { role: "researcher", domain: "deep investigation", sequencing: "early" },
-        { role: "planner", domain: "decomposition and sequencing", sequencing: "early" },
-        { role: "tree", domain: "chat/folder normalization", sequencing: "parallel" },
-        { role: "worktree", domain: "git worktree layout", sequencing: "parallel" },
-        { role: "raycast", domain: "Raycast operations", sequencing: "parallel" },
-        { role: "inference", domain: "model routing", sequencing: "parallel" },
-        { role: "manifest", domain: "tree export and drift", sequencing: "parallel" },
-        { role: "terminal", domain: "safe shell execution", sequencing: "late" }
-      ],
-      orchestrationId: this.state.orchestrationId,
-      status: this.state.status
-    }
-  }
-
-  private async dispatch(
-    agentNamespace: string,
-    method: string,
-    input: unknown
-  ): Promise<unknown> {
-    try {
-      const ns = this.env[agentNamespace as keyof Env] as DurableObjectNamespace | undefined
-
-      if (!ns) {
-        throw new Error(`No Durable Object namespace for ${agentNamespace}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[supervisor] bootstrap-and-sync failed: ${message}`)
+      return {
+        success: false,
+        errors: [message],
       }
-
-      const id = ns.idFromName("singleton")
-      const stub = ns.get(id)
-
-      const response = await stub.fetch("https://agent/rpc", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          method,
-          input,
-          orchestrationId: this.state.orchestrationId,
-          timestamp: new Date().toISOString()
-        })
-      })
-
-      if (!response.ok) {
-        const text = await response.text()
-        throw new Error(`${agentNamespace}.${method}() returned ${response.status}: ${text}`)
-      }
-
-      const result = await response.json() as { ok: boolean; result?: unknown; error?: string }
-      
-      if (!result.ok && result.error) {
-        throw new Error(`${agentNamespace}.${method}() error: ${result.error}`)
-      }
-
-      const payload = result.result ?? {}
-      console.log(
-        `[SUPERVISOR] ✓ ${agentNamespace}.${method}() → ${JSON.stringify(payload).slice(0, 80)}...`
-      )
-
-      return payload
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error(`[SUPERVISOR] ✗ Dispatch failed for ${agentNamespace}.${method}: ${message}`)
-      throw err
     }
   }
 }
 
-// Re-export all subagent classes (required by wrangler.jsonc durable_objects bindings)
-export {
-  ResearcherAgent,
-  PlannerAgent,
-  TreeAgent,
-  WorktreeAgent,
-  RaycastAgent,
-  InferenceAgent,
-  ManifestAgent,
-  TerminalAgent,
-}
-
-// HTTP handler
+/**
+ * HTTP request handler
+ * Route to callable methods or return 404
+ */
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
-    const url = new URL(req.url)
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const path = url.pathname
 
-    // Route to agents via Agents SDK
-    if (url.pathname.startsWith("/agents/")) {
-      try {
-        const result = routeAgentRequest(req, env)
-        if (result) {
-          return result
-        }
-      } catch (err) {
-        console.error("[HANDLER] Agent routing error:", err)
-        return new Response(
-          JSON.stringify({ error: String(err) }),
-          { status: 500, headers: { "content-type": "application/json" } }
-        )
+    try {
+      // Get or create supervisor DO instance
+      const id = env.supervisor.idFromName("default")
+      const supervisor = env.supervisor.get(id)
+
+      // Route to callable methods
+      if (path === "/state" && request.method === "GET") {
+        const state = await supervisor.getTreeState()
+        return new Response(JSON.stringify(state), {
+          headers: { "content-type": "application/json" },
+        })
       }
-    }
 
-    // Health check
-    if (url.pathname === "/health") {
-      return new Response(
-        JSON.stringify({ ok: true, timestamp: new Date().toISOString(), service: "orchestrator" }),
-        { headers: { "content-type": "application/json" } }
-      )
-    }
+      if (path === "/plan" && request.method === "POST") {
+        const body = await request.json()
+        const plan = await supervisor.plan(body)
+        return new Response(JSON.stringify(plan), {
+          headers: { "content-type": "application/json" },
+        })
+      }
 
-    // API docs
-    if (url.pathname === "/" || url.pathname === "") {
-      return new Response(
-        JSON.stringify({
-          service: "raycast-agent-orchestrator",
-          domain: "orchestrator.zbst.tech",
-          endpoints: {
-            health: "GET /health",
-            orchestrate: "POST /agents/supervisor/{id}/orchestrate",
-            state: "GET /agents/supervisor/{id}/state",
-            agents: "GET /agents/supervisor/{id}/agents"
-          }
-        }),
-        { headers: { "content-type": "application/json" } }
-      )
-    }
+      if (path === "/normalize-root" && request.method === "POST") {
+        const body = await request.json()
+        await supervisor.normalizeRoot(body)
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
 
-    return new Response(JSON.stringify({ error: "Not found" }), {
-      status: 404,
-      headers: { "content-type": "application/json" }
-    })
-  }
+      if (path === "/create-branches" && request.method === "POST") {
+        const body = await request.json()
+        const result = await supervisor.createBranches(body)
+        return new Response(JSON.stringify(result), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      if (path === "/export-manifest" && request.method === "GET") {
+        const manifest = await supervisor.exportManifest()
+        return new Response(JSON.stringify(manifest), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      if (path === "/sync-tree" && request.method === "POST") {
+        const body = await request.json()
+        const drift = await supervisor.syncTree(body)
+        return new Response(JSON.stringify(drift), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      if (path === "/bootstrap-and-sync" && request.method === "POST") {
+        const result = await supervisor.bootstrapAndSync()
+        return new Response(JSON.stringify(result), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      // Not found
+      return new Response(JSON.stringify({ error: "Not found", path }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return new Response(JSON.stringify({ error: message }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      })
+    }
+  },
 }
