@@ -1,0 +1,20 @@
+{
+  "name": "worker-agent",
+  "main": "src/agent.ts",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ChatTreeAgent",
+        "class_name": "ChatTreeAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ChatTreeAgent"]
+    }
+  ]
+}
