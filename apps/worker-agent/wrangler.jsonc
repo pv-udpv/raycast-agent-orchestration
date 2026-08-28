@@ -1,21 +1,28 @@
 {
-  "name": "chat-tree-agent",
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  "name": "raycast-agent-orchestrator",
   "main": "src/agent.ts",
-  "compatibility_date": "2026-08-27",
+  "compatibility_date": "2024-12-10",
   "compatibility_flags": ["nodejs_compat"],
+  "alias": {
+    "agents": "../../packages/agents/index.ts",
+    "zbst-tech-subagents": "../../packages/zbst-tech/src/subagents.ts"
+  },
   "env": {
-    "staging": {
+    "production": {
+      "name": "raycast-agent-orchestrator-prod",
       "routes": [
         {
-          "pattern": "staging.zbst.tech/*",
+          "pattern": "orchestrator.zbst.tech/*",
           "zone_name": "zbst.tech"
         }
       ]
     },
-    "production": {
+    "staging": {
+      "name": "raycast-agent-orchestrator-staging",
       "routes": [
         {
-          "pattern": "raycast.zbst.tech/*",
+          "pattern": "orchestrator-staging.zbst.tech/*",
           "zone_name": "zbst.tech"
         }
       ]
@@ -24,22 +31,57 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "supervisor",
-        "class_name": "RaycastOrchestratorSupervisor",
-        "script_name": "chat-tree-agent"
+        "name": "Supervisor",
+        "class_name": "Supervisor"
+      },
+      {
+        "name": "ResearcherAgent",
+        "class_name": "ResearcherAgent"
+      },
+      {
+        "name": "PlannerAgent",
+        "class_name": "PlannerAgent"
+      },
+      {
+        "name": "TreeAgent",
+        "class_name": "TreeAgent"
+      },
+      {
+        "name": "WorktreeAgent",
+        "class_name": "WorktreeAgent"
+      },
+      {
+        "name": "RaycastAgent",
+        "class_name": "RaycastAgent"
+      },
+      {
+        "name": "InferenceAgent",
+        "class_name": "InferenceAgent"
+      },
+      {
+        "name": "ManifestAgent",
+        "class_name": "ManifestAgent"
+      },
+      {
+        "name": "TerminalAgent",
+        "class_name": "TerminalAgent"
       }
     ]
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["RaycastOrchestratorSupervisor"]
+      "new_sqlite_classes": [
+        "Supervisor",
+        "ResearcherAgent",
+        "PlannerAgent",
+        "TreeAgent",
+        "WorktreeAgent",
+        "RaycastAgent",
+        "InferenceAgent",
+        "ManifestAgent",
+        "TerminalAgent"
+      ]
     }
-  ],
-  "vars": {
-    "PERPLEXITY_API_KEY": "will_be_set_at_deploy"
-  },
-  "observability": {
-    "enabled": true
-  }
+  ]
 }
