@@ -1,19 +1,18 @@
 {
-  "name": "raycast-agent-orchestration",
-  "version": "0.1.0",
-  "private": true,
-  "workspaces": [
-    "apps/raycast-extension",
-    "apps/worker-agent",
-    "packages/*"
-  ],
+  "name": "@rbst/raycast-extension",
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm --filter worker-agent dev",
-    "deploy": "pnpm --filter worker-agent deploy",
-    "test": "pnpm -r test"
+    "dev": "ray develop",
+    "build": "ray build -e macos"
+  },
+  "dependencies": {
+    "@raycast/api": "^1.80.0",
+    "@raycast/utils": "^1.16.0"
   },
   "devDependencies": {
-    "pnpm": "^8.0.0"
+    "@raycast/eslint-config": "^1.0.0",
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
   }
 }

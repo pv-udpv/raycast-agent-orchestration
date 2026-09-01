@@ -1,0 +1,40 @@
+{
+  "title": "Tree Orchestrator",
+  "description": "Raycast agent for chat-tree branching, worktree management, and inference dispatch",
+  "commands": [
+    {
+      "name": "tree-manager",
+      "title": "Tree Manager",
+      "subtitle": "View and manage chat tree",
+      "description": "Dashboard for tree state, branch status, and quick actions",
+      "mode": "view",
+      "path": "src/commands/tree-manager.tsx"
+    },
+    {
+      "name": "invoke-model",
+      "title": "Invoke Model",
+      "subtitle": "Run inference task",
+      "description": "Send a prompt to local or remote model",
+      "mode": "view",
+      "path": "src/commands/invoke-model.tsx"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "agentUrl",
+      "label": "Agent URL",
+      "description": "Cloudflare Workers agent endpoint",
+      "type": "textfield",
+      "default": "http://localhost:8787",
+      "required": false
+    },
+    {
+      "name": "orbstackIp",
+      "label": "OrbStack IP",
+      "description": "Tailscale IP of OrbStack Ubuntu",
+      "type": "textfield",
+      "default": "100.64.2.15",
+      "required": false
+    }
+  ]
+}
