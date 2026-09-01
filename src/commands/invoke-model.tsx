@@ -1,142 +1,255 @@
-import { Action, ActionPanel, Detail, Toast, showToast, Form } from "@raycast/api"
-import { useState } from "react"
+import {
+  Action,
+  ActionPanel,
+  Detail,
+  Form,
+  List,
+  LocalStorage,
+  Clipboard,
+  showToast,
+  Toast,
+  Icon
+} from "@raycast/api"
+import { useEffect, useState } from "react"
+import { SessionManager } from "../session-bridge/session-manager"
+import type { SessionState, ProviderId } from "../session-bridge/types"
 
-interface InvokeResponse {
-  ok: boolean
-  model: string
-  runner: string
-  output: string
-  latency: number
-  tokens: number
-  error?: string
-}
+const LAST_SESSION_KEY = "lastSessionId"
 
-export default function InvokeModel() {
-  const [prompt, setPrompt] = useState("")
-  const [kind, setKind] = useState("research")
-  const [urgency, setUrgency] = useState("low")
-  const [result, setResult] = useState<InvokeResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+export default function InvokeModelCommand() {
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [activeState, setActiveState] = useState<SessionState | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  async function invoke() {
-    if (!prompt.trim()) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Prompt required"
-      })
-      return
-    }
+  useEffect(() => {
+    // Load last session on mount
+    loadLastSession()
+  }, [])
 
+  const loadLastSession = async () => {
     try {
-      setIsLoading(true)
-      showToast({
-        style: Toast.Style.Animated,
-        title: "Invoking model...",
-        message: `${kind} task with ${urgency} urgency`
-      })
-
-      const agentUrl = process.env.AGENT_URL || "http://localhost:8787"
-      const resp = await fetch(`${agentUrl}/agents/chat-tree/main`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          method: "invokeModel",
-          params: {
-            kind,
-            prompt,
-            urgency
-          }
-        })
-      })
-
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-
-      const data = (await resp.json()) as InvokeResponse
-      if (!data.ok) throw new Error(data.error || "Unknown error")
-
-      setResult(data)
-      showToast({
-        style: Toast.Style.Success,
-        title: "Inference complete",
-        message: `${data.model} (${data.runner}) in ${data.latency}ms`
-      })
+      const saved = await LocalStorage.getItem<string>(LAST_SESSION_KEY)
+      if (saved && SessionManager.listSessions().includes(saved)) {
+        loadSession(saved)
+      } else {
+        setLoading(false)
+      }
     } catch (err) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Inference failed",
-        message: (err as Error).message
-      })
-    } finally {
-      setIsLoading(false)
+      console.error("Failed to load last session:", err)
+      setLoading(false)
     }
   }
 
-  if (result) {
+  const loadSession = (id: string) => {
+    try {
+      const mgr = SessionManager.load(id)
+      const state = mgr.export()
+      setSessionId(id)
+      setActiveState(state)
+      LocalStorage.setItem(LAST_SESSION_KEY, id)
+      setLoading(false)
+    } catch (err) {
+      console.error("Failed to load session:", err)
+      showToast(Toast.Style.Failure, "Failed to load session")
+      setLoading(false)
+    }
+  }
+
+  const startNewSession = () => {
+    try {
+      const mgr = new SessionManager()
+      const state = mgr.export()
+      setSessionId(state.sessionId)
+      setActiveState(state)
+      LocalStorage.setItem(LAST_SESSION_KEY, state.sessionId)
+      showToast(Toast.Style.Success, `Started session ${state.sessionId.slice(-8)}`)
+    } catch (err) {
+      showToast(Toast.Style.Failure, "Failed to start session")
+    }
+  }
+
+  if (loading) {
+    return <Detail isLoading={true} markdown="Loading session..." />
+  }
+
+  if (!sessionId || !activeState) {
     return (
-      <Detail
-        markdown={`# Inference Result
-
-**Model:** \`${result.model}\`  
-**Runner:** ${result.runner}  
-**Latency:** ${result.latency}ms  
-**Tokens:** ${result.tokens}  
-
-## Output
-
-${result.output}
-`}
+      <List
         actions={
           <ActionPanel>
-            <Action.CopyToClipboard content={result.output} title="Copy Output" />
             <Action
-              title="Back"
-              onAction={() => setResult(null)}
-              shortcut={{ modifiers: ["cmd"], key: "k" }}
+              title="Start New Session"
+              icon={Icon.Plus}
+              onAction={startNewSession}
+            />
+            <Action
+              title="Load Existing Session"
+              icon={Icon.Folder}
+              onAction={() => {
+                // Create a temporary state with sessions list
+                const sessions = SessionManager.listSessions()
+                setActiveState({
+                  sessionId: "temp",
+                  createdAt: 0,
+                  providerBindings: {},
+                  transcript: sessions.map((s, i) => ({
+                    turn: i,
+                    provider: "codex",
+                    role: "user",
+                    content: s,
+                    timestamp: 0
+                  }))
+                })
+              }}
             />
           </ActionPanel>
         }
-      />
+      >
+        <List.EmptyView
+          title="No Active Session"
+          description="Start a new session or load an existing one"
+        />
+      </List>
     )
   }
 
+  // If we're showing the sessions list
+  if (activeState.sessionId === "temp") {
+    return (
+      <List>
+        {activeState.transcript.map(t => (
+          <List.Item
+            key={t.content}
+            title={t.content.slice(-12)}
+            subtitle={t.content}
+            actions={
+              <ActionPanel>
+                <Action
+                  title="Load Session"
+                  icon={Icon.Folder}
+                  onAction={() => loadSession(t.content)}
+                />
+              </ActionPanel>
+            }
+          />
+        ))}
+      </List>
+    )
+  }
+
+  // Main chat form
   return (
     <Form
-      isLoading={isLoading}
+      navigationTitle={`Session: ${sessionId.slice(-8)}`}
       actions={
         <ActionPanel>
-          <Action title="Invoke" onAction={invoke} />
+          <Action.SubmitForm
+            title="Send Prompt"
+            icon={Icon.Send}
+            onSubmit={async values => {
+              await handleSend(values.prompt, values.provider as ProviderId)
+            }}
+          />
+          <Action
+            title="View Transcript"
+            icon={Icon.Document}
+            onAction={() => {
+              // Just show it via toast for now; full detail view needs navigation
+              Clipboard.copy(JSON.stringify(activeState.transcript, null, 2))
+              showToast(Toast.Style.Success, "Transcript copied to clipboard")
+            }}
+          />
+          <Action
+            title="Export Session"
+            icon={Icon.Download}
+            onAction={async () => {
+              const json = JSON.stringify(activeState, null, 2)
+              await Clipboard.copy(json)
+              showToast(Toast.Style.Success, "Session JSON copied")
+            }}
+          />
+          <Action
+            title="New Session"
+            icon={Icon.Plus}
+            onAction={startNewSession}
+          />
+          <Action
+            title="Load Session"
+            icon={Icon.Folder}
+            onAction={() => {
+              const sessions = SessionManager.listSessions()
+              setActiveState({
+                sessionId: "temp",
+                createdAt: 0,
+                providerBindings: {},
+                transcript: sessions.map((s, i) => ({
+                  turn: i,
+                  provider: "codex",
+                  role: "user",
+                  content: s,
+                  timestamp: 0
+                }))
+              })
+            }}
+          />
         </ActionPanel>
       }
     >
       <Form.TextArea
         id="prompt"
-        title="Prompt"
+        title="Your Prompt"
         placeholder="Enter your prompt..."
-        value={prompt}
-        onChange={setPrompt}
       />
       <Form.Dropdown
-        id="kind"
-        title="Task kind"
-        value={kind}
-        onChange={setKind}
+        id="provider"
+        title="Provider"
+        defaultValue={
+          activeState.transcript.length > 0
+            ? activeState.transcript[activeState.transcript.length - 1].provider
+            : "codex"
+        }
       >
-        <Form.Dropdown.Item value="normalize" title="Normalize" />
-        <Form.Dropdown.Item value="export" title="Export" />
-        <Form.Dropdown.Item value="plan" title="Plan" />
-        <Form.Dropdown.Item value="research" title="Research" />
-        <Form.Dropdown.Item value="code" title="Code" />
+        <Form.Dropdown.Item value="codex" title="Codex (local)" />
+        <Form.Dropdown.Item value="pplx-mlx" title="Perplexity KG (local)" />
+        <Form.Dropdown.Item value="claude" title="Claude (API)" />
       </Form.Dropdown>
-      <Form.Dropdown
-        id="urgency"
-        title="Urgency"
-        value={urgency}
-        onChange={setUrgency}
-      >
-        <Form.Dropdown.Item value="low" title="Low (prefer local)" />
-        <Form.Dropdown.Item value="medium" title="Medium (local w/ fallback)" />
-        <Form.Dropdown.Item value="high" title="High (prefer remote)" />
-      </Form.Dropdown>
+      <Form.Description text={`Session: ${sessionId.slice(-8)}`} />
+      <Form.Description text={`Turns: ${activeState.transcript.length}`} />
     </Form>
   )
+
+  async function handleSend(prompt: string, provider: ProviderId) {
+    if (!prompt.trim()) {
+      showToast(Toast.Style.Failure, "Prompt cannot be empty")
+      return
+    }
+
+    if (!sessionId) {
+      showToast(Toast.Style.Failure, "No active session")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const mgr = SessionManager.load(sessionId)
+      const response = await mgr.send(provider, prompt)
+      const newState = mgr.export()
+      setActiveState(newState)
+
+      await showToast({
+        style: Toast.Style.Success,
+        title: `${provider} responded`,
+        message: response.slice(0, 80) + (response.length > 80 ? "..." : "")
+      })
+    } catch (err) {
+      console.error("Error sending prompt:", err)
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Error",
+        message: err instanceof Error ? err.message : String(err)
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 }

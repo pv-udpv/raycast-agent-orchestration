@@ -1,6 +1,7 @@
 import { SessionState, ProviderAdapter, Turn, ProviderId } from "./types"
 import { CodexAdapter } from "./adapters/codex-adapter"
 import { PplxAdapter } from "./adapters/pplx-adapter"
+import { ClaudeAdapter } from "./adapters/claude-adapter"
 import * as fs from "fs"
 import * as path from "path"
 import * as crypto from "crypto"
@@ -48,7 +49,7 @@ export class SessionManager {
     // Register adapters
     this.adapters.set("codex", new CodexAdapter())
     this.adapters.set("pplx-mlx", new PplxAdapter())
-    // Claude adapter TBD
+    this.adapters.set("claude", new ClaudeAdapter())
   }
 
   /** Send a prompt to a provider; automatically record turn in session. */

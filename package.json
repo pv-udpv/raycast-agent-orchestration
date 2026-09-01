@@ -1,7 +1,12 @@
 {
   "name": "@rbst/raycast-extension",
+  "title": "Tree Orchestrator",
+  "description": "Raycast agent for multi-provider chat orchestration, session management, and inference dispatch",
   "version": "1.0.0",
   "type": "module",
+  "icon": "command-icon.png",
+  "author": "pv-udpv",
+  "license": "MIT",
   "scripts": {
     "dev": "ray develop",
     "build": "ray build -e macos"
@@ -14,5 +19,66 @@
     "@raycast/eslint-config": "^1.0.0",
     "@types/react": "^18.0.0",
     "typescript": "^5.0.0"
+  },
+  "commands": [
+    {
+      "name": "tree-manager",
+      "title": "Tree Manager",
+      "subtitle": "View and manage chat tree",
+      "description": "Dashboard for tree state, branch status, and quick actions",
+      "mode": "view",
+      "path": "src/commands/tree-manager.tsx"
+    },
+    {
+      "name": "invoke-model",
+      "title": "Invoke Model",
+      "subtitle": "Run inference task with cross-provider session",
+      "description": "Send prompts to Codex, Perplexity, or Claude while preserving conversation context",
+      "mode": "view",
+      "path": "src/commands/invoke-model.tsx"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "agentUrl",
+      "label": "Agent URL",
+      "description": "Cloudflare Workers agent endpoint (optional)",
+      "type": "textfield",
+      "default": "http://localhost:8787",
+      "required": false
+    },
+    {
+      "name": "orbstackIp",
+      "label": "OrbStack IP",
+      "description": "Tailscale IP of OrbStack Ubuntu (optional)",
+      "type": "textfield",
+      "default": "100.64.2.15",
+      "required": false
+    }
+  ],
+  "ai": {
+    "instructions": "You are the Tree Orchestrator AI agent. You can send prompts to multiple inference providers (Codex, Perplexity/pplx-mlx, Claude) and switch between them seamlessly while preserving full conversation context. Use send-prompt to start a conversation or continue in the current session. Before acting on a prior conversation, always use get-transcript to view history. Switch providers mid-conversation using switch-provider. List available sessions with list-sessions.",
+    "tools": [
+      {
+        "name": "send-prompt",
+        "title": "Send Prompt",
+        "description": "Send a prompt to a provider (codex, pplx-mlx, or claude). Creates a new session if sessionId is not provided. Returns sessionId for future reference."
+      },
+      {
+        "name": "switch-provider",
+        "title": "Switch Provider",
+        "description": "Switch to a different provider mid-conversation. Preserves full conversation context across provider boundaries."
+      },
+      {
+        "name": "list-sessions",
+        "title": "List Sessions",
+        "description": "List all available conversation sessions with their metadata (creation time, turn count, active providers)."
+      },
+      {
+        "name": "get-transcript",
+        "title": "Get Transcript",
+        "description": "Retrieve the full conversation transcript for a session, including all turns and provider tags."
+      }
+    ]
   }
 }
