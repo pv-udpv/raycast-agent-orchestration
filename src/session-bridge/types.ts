@@ -1,4 +1,4 @@
-export type ProviderId = "codex" | "claude" | "pplx-mlx"
+export type ProviderId = "codex" | "claude" | "pplx-mlx" | "comet"
 
 export interface Turn {
   turn: number

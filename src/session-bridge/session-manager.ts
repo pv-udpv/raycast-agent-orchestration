@@ -2,6 +2,7 @@ import { SessionState, ProviderAdapter, Turn, ProviderId } from "./types"
 import { CodexAdapter } from "./adapters/codex-adapter"
 import { PplxAdapter } from "./adapters/pplx-adapter"
 import { ClaudeAdapter } from "./adapters/claude-adapter"
+import { CometAdapter } from "./adapters/comet-adapter"
 import * as fs from "fs"
 import * as path from "path"
 import * as crypto from "crypto"
@@ -50,6 +51,7 @@ export class SessionManager {
     this.adapters.set("codex", new CodexAdapter())
     this.adapters.set("pplx-mlx", new PplxAdapter())
     this.adapters.set("claude", new ClaudeAdapter())
+    this.adapters.set("comet", new CometAdapter())
   }
 
   /** Send a prompt to a provider; automatically record turn in session. */

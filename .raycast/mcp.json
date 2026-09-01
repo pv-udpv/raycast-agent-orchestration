@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "pplx-comet": {
+      "command": "python",
+      "args": [
+        "-m",
+        "pplx_mcp"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/pv/Documents/Perplexity/pplx-mcp-server/src",
+        "CHAT_BASE_URL": "http://127.0.0.1:49317/v1",
+        "EMBED_BASE_URL": "http://127.0.0.1:49319/v1",
+        "AGENT_BASE_URL": "http://127.0.0.1:49320",
+        "PPLX_SESSION_TOKEN": ""
+      }
+    }
+  }
+}
