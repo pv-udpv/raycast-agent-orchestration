@@ -1,19 +1,19 @@
 {
-  "name": "raycast-agent-orchestration",
-  "version": "0.1.0",
-  "private": true,
-  "workspaces": [
-    "apps/raycast-extension",
-    "apps/worker-agent",
-    "packages/*"
-  ],
+  "name": "@rbst/worker-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/agent.js",
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm --filter worker-agent dev",
-    "deploy": "pnpm --filter worker-agent deploy",
-    "test": "pnpm -r test"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "agents": "workspace:*"
   },
   "devDependencies": {
-    "pnpm": "^8.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.20.0"
   }
 }

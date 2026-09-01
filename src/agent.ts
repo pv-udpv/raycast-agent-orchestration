@@ -1,7 +1,8 @@
-// Cloudflare Agents SDK Supervisor Implementation
+// Cloudflare Agents SDK Supervisor Implementation with Inference Dispatch
 // Wrangler binding: ChatTreeAgent (Durable Object)
 
 import { Agent, callable } from "agents"
+import { InferenceRouter, InferenceRequest, InferenceResult, ModelChoice } from "./inference"
 
 export interface TreeState {
   treeId: string
@@ -26,10 +27,13 @@ export interface TreeNode {
 }
 
 /**
- * ChatTreeAgent - Durable orchestrator for tree state
+ * ChatTreeAgent - Durable orchestrator for tree state + inference dispatch
  * Persists to SQLite; serves as single source of truth for branch/chat metadata
+ * Integrates with InferenceRouter for model selection and invocation
  */
 export class ChatTreeAgent extends Agent<Env, TreeState> {
+  private inferenceRouter = new InferenceRouter()
+
   initialState: TreeState = {
     treeId: crypto.randomUUID(),
     name: "raycast-agent-orchestration",
@@ -78,7 +82,7 @@ export class ChatTreeAgent extends Agent<Env, TreeState> {
   @callable()
   upsertNode(node: TreeNode) {
     const existing = this.state.nodes[node.id]
-    
+
     // Update parent's children list if this is a new child
     if (!existing && node.parentId && this.state.nodes[node.parentId]) {
       const parent = this.state.nodes[node.parentId]
@@ -151,7 +155,9 @@ export class ChatTreeAgent extends Agent<Env, TreeState> {
     const localCount = Object.keys(this.state.nodes).length
     const externalCount = Object.keys(externalManifest.nodes).length
     if (localCount !== externalCount) {
-      drift.push(`Node count mismatch: local=${localCount}, external=${externalCount}`)
+      drift.push(
+        `Node count mismatch: local=${localCount}, external=${externalCount}`
+      )
     }
 
     // Check for missing nodes
@@ -174,7 +180,9 @@ export class ChatTreeAgent extends Agent<Env, TreeState> {
       const external = externalManifest.nodes[nodeId]
       if (external) {
         if (local.title !== external.title) {
-          drift.push(`Title mismatch: ${nodeId} "${local.title}" vs "${external.title}"`)
+          drift.push(
+            `Title mismatch: ${nodeId} "${local.title}" vs "${external.title}"`
+          )
         }
         if (local.done !== external.done) {
           drift.push(`Done status mismatch: ${nodeId}`)
@@ -187,6 +195,78 @@ export class ChatTreeAgent extends Agent<Env, TreeState> {
       hasDrift: drift.length > 0,
       drift
     }
+  }
+
+  /**
+   * Choose optimal model for a task
+   */
+  @callable()
+  chooseModel(request: InferenceRequest): ModelChoice {
+    return this.inferenceRouter.chooseModel(request)
+  }
+
+  /**
+   * Invoke model for inference
+   * Routes to local (Ollama, MLX, Codex, Perplexity) or remote (Claude, OpenAI, Perplexity Pro)
+   */
+  @callable({ streaming: true })
+  async invokeModel(
+    request: InferenceRequest,
+    response: ReadableStreamDefaultController<string>
+  ) {
+    try {
+      const choice = this.inferenceRouter.chooseModel(request)
+      const result = await this.inferenceRouter.invoke(choice, request)
+
+      // Stream the result
+      response.enqueue(
+        JSON.stringify({
+          ok: true,
+          model: result.model,
+          runner: result.runner,
+          latency: result.latency,
+          tokens: result.tokens,
+          output: result.output
+        })
+      )
+      response.close()
+    } catch (err) {
+      response.enqueue(
+        JSON.stringify({
+          ok: false,
+          error: (err as Error).message
+        })
+      )
+      response.close()
+    }
+  }
+
+  /**
+   * Batch invocation (e.g., for planning + research in parallel)
+   */
+  @callable()
+  async batchInvoke(
+    requests: Array<InferenceRequest & { id: string }>
+  ): Promise<Array<InferenceResult & { id: string }>> {
+    const results = await Promise.all(
+      requests.map(async (req) => {
+        try {
+          const choice = this.inferenceRouter.chooseModel(req)
+          const result = await this.inferenceRouter.invoke(choice, req)
+          return { ...result, id: req.id }
+        } catch (err) {
+          return {
+            model: "error",
+            output: (err as Error).message,
+            runner: "error" as const,
+            latency: 0,
+            tokens: 0,
+            id: req.id
+          }
+        }
+      })
+    )
+    return results
   }
 }
 
