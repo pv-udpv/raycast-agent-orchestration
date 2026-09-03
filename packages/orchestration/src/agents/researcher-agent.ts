@@ -40,12 +40,12 @@ export class ResearcherAgent {
         taskId: task.id,
         agentType: this.agentType,
         status: 'success',
-        output: {
+        output: JSON.stringify({
           researchResults: results,
           branchPath: input.outputBranch || 'docs/research',
           totalTopics: input.topics.length,
           completedTopics: results.length,
-        },
+        }),
         metadata: {
           duration: Date.now() - startTime,
           retries: 0,
@@ -63,6 +63,7 @@ export class ResearcherAgent {
         metadata: {
           duration: Date.now() - startTime,
           retries: 0,
+          errorStack: err instanceof Error ? err.stack : undefined,
         },
       };
     }

@@ -119,13 +119,13 @@ export class TerminalAgent {
         taskId: task.id,
         agentType: this.agentType,
         status: result.exitCode === 0 ? 'success' : 'failed',
-        output: {
+        output: JSON.stringify({
           command: result.command,
           exitCode: result.exitCode,
           stdout: result.stdout,
           stderr: result.stderr,
           duration: result.duration,
-        },
+        }),
         metadata: {
           duration: Date.now() - startTime,
           retries: 0,
@@ -143,6 +143,7 @@ export class TerminalAgent {
         metadata: {
           duration: Date.now() - startTime,
           retries: 0,
+          errorStack: err instanceof Error ? err.stack : undefined,
         },
       };
     }

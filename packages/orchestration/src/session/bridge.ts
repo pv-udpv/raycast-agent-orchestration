@@ -108,7 +108,7 @@ export class SessionBridge {
     content: string,
     metadata?: Record<string, unknown>
   ): SessionMessage {
-    const id = `${this.sessionId}-${provider}-${Date.now()}`;
+    const id = `${this.sessionId}-${provider}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const timestamp = new Date().toISOString();
 
     this.db
