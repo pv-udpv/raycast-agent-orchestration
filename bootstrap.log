@@ -1,0 +1,38 @@
+[BOOTSTRAP] Starting full orchestration bootstrap
+[BOOTSTRAP] Repo root: /Users/pv/dev/raycast-agent-orchestration
+[BOOTSTRAP] Worktree root: /Users/pv/dev/raycast-agent-orchestration/worktrees
+[BOOTSTRAP] Creating main worktree...
+[BOOTSTRAP] Main worktree already exists or branch missing
+[BOOTSTRAP] Creating research worktrees...
+[BOOTSTRAP] Worktree already exists: wt-10-git-worktree
+[BOOTSTRAP] Worktree already exists: wt-20-zbst-tech-subagents
+[BOOTSTRAP] Worktree already exists: wt-30-local-inference
+[BOOTSTRAP] Worktree already exists: wt-40-raycast-integration
+[BOOTSTRAP] Worktree already exists: wt-50-worker-agent
+[BOOTSTRAP] Worktree already exists: wt-60-terminal-automation
+[BOOTSTRAP] Worktree already exists: wt-70-manifest-notes
+[BOOTSTRAP] Worktree already exists: wt-80-comparison-matrix
+[BOOTSTRAP] Worktree already exists: wt-90-notes-and-findings
+[BOOTSTRAP] Creating docs structure...
+[BOOTSTRAP] Copying research templates...
+[BOOTSTRAP] Initializing subagent stubs...
+[BOOTSTRAP] Exporting initial manifest...
+
+[BOOTSTRAP] ✓ Bootstrap complete!
+[BOOTSTRAP] Worktrees:
+  - .
+  - ..
+  - wt-10-git-worktree
+  - wt-20-zbst-tech-subagents
+  - wt-30-local-inference
+  - wt-40-raycast-integration
+  - wt-50-worker-agent
+  - wt-60-terminal-automation
+  - wt-70-manifest-notes
+  - wt-80-comparison-matrix
+  - wt-90-notes-and-findings
+
+[BOOTSTRAP] Next steps:
+  1. cd /Users/pv/dev/raycast-agent-orchestration/worktrees/wt-10-git-worktree
+  2. Review docs/research/ for research reports
+  3. Run git status to verify tree

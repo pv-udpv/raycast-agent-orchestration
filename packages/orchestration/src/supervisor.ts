@@ -1,197 +1,100 @@
 /**
- * Supervisor: Central orchestration coordinator
- * Dispatches tasks to agents via explicit routing matrix
+ * Supervisor Agent: The central coordinator for the 9-agent system
+ * Manages task routing, session state, and result synthesis
  */
 
-import { AgentTask, AgentResult, AgentType } from './types/agent.js';
-import {
-  routingMatrix,
-  validateRoutingMatrix,
-  getExecutionPlan,
-} from './dispatch/routing.js';
-import { researcherAgent } from './agents/researcher-agent.js';
+import { ProviderRouter, ProviderConfig } from './routing/provider-router.js';
+import { SessionBridge } from './session/bridge.js';
+import { TerminalAgent } from './agents/terminal-agent.js';
+import { ResearcherAgent } from './agents/researcher-agent.js';
+import type { AgentTask, AgentResult } from '../types/agent.js';
 
-interface SupervisorConfig {
-  enableLogging: boolean;
-  timeoutMs: number;
-  maxRetries: number;
+export interface SupervisorConfig {
+  sessionId: string;
+  chatId: string;
+  providers: ProviderConfig[];
 }
 
 export class Supervisor {
-  private config: SupervisorConfig;
-  private taskLog: Map<string, AgentResult[]> = new Map();
+  private router: ProviderRouter;
+  private bridge: SessionBridge;
+  private terminal: TerminalAgent;
+  private researcher: ResearcherAgent;
 
-  constructor(config: Partial<SupervisorConfig> = {}) {
-    this.config = {
-      enableLogging: true,
-      timeoutMs: 60000,
-      maxRetries: 2,
-      ...config,
-    };
-
-    // Validate routing matrix at initialization
-    const validation = validateRoutingMatrix();
-    if (!validation.valid) {
-      throw new Error(
-        `Invalid routing matrix: ${validation.errors.join(', ')}`
-      );
-    }
-
-    if (this.config.enableLogging) {
-      console.log('[Supervisor] Initialized with validated routing matrix');
-    }
+  constructor(config: SupervisorConfig) {
+    this.router = new ProviderRouter(config.providers);
+    this.bridge = new SessionBridge(config.sessionId, config.chatId);
+    this.terminal = new TerminalAgent();
+    this.researcher = new ResearcherAgent();
   }
 
   /**
-   * Execute a high-level task by orchestrating subagents
+   * Main entry point for task orchestration
    */
-  async execute(taskType: string, input: Record<string, unknown>) {
-    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  async orchestrate(task: AgentTask): Promise<AgentResult> {
+    // 1. Log user request to session
+    this.bridge.appendMessage('claude', 'user', task.description || '', { taskId: task.id });
 
-    if (this.config.enableLogging) {
-      console.log(`[Supervisor] Dispatching task: ${taskId} (type: ${taskType})`);
-    }
-
-    // Get execution plan
-    const plan = getExecutionPlan(taskType);
-
-    if (this.config.enableLogging) {
-      console.log(
-        `[Supervisor] Execution plan: ${plan.sequence.length} stages`
-      );
-      plan.sequence.forEach((stage, i) => {
-        console.log(`  Stage ${i + 1}: ${stage.join(', ')}`);
-      });
-    }
-
-    const allResults: AgentResult[] = [];
-
-    // Execute each stage sequentially, but agents within stage run in parallel
-    for (let stageIdx = 0; stageIdx < plan.sequence.length; stageIdx++) {
-      const stage = plan.sequence[stageIdx]!;
-
-      if (this.config.enableLogging) {
-        console.log(`[Supervisor] Executing stage ${stageIdx + 1}...`);
-      }
-
-      const stageResults = await Promise.all(
-        stage.map((agentType) =>
-          this.dispatchAgent(
-            agentType,
-            {
-              id: `${taskId}-${agentType}`,
-              type: agentType,
-              input,
-              metadata: {
-                createdAt: new Date().toISOString(),
-                parentTaskId: taskId,
-                priority: 'high',
-              },
-            } as AgentTask,
-            0
-          )
-        )
-      );
-
-      allResults.push(...stageResults);
-
-      // Check for failures
-      const failures = stageResults.filter((r) => r.status === 'failed');
-      if (failures.length > 0 && this.config.enableLogging) {
-        console.warn(
-          `[Supervisor] Stage ${stageIdx + 1} had ${failures.length} failures`
-        );
-      }
-    }
-
-    if (this.config.enableLogging) {
-      console.log(
-        `[Supervisor] Task ${taskId} complete. Results: ${allResults.length}`
-      );
-    }
-
-    this.taskLog.set(taskId, allResults);
-
-    return {
-      taskId,
-      results: allResults,
-      summary: {
-        total: allResults.length,
-        succeeded: allResults.filter((r) => r.status === 'success').length,
-        failed: allResults.filter((r) => r.status === 'failed').length,
-      },
-    };
-  }
-
-  /**
-   * Dispatch a single agent with retry logic
-   */
-  private async dispatchAgent(
-    agentType: AgentType,
-    task: AgentTask,
-    attempt: number
-  ): Promise<AgentResult> {
     try {
-      if (this.config.enableLogging) {
-        console.log(`[Supervisor] Dispatching to ${agentType} (attempt ${attempt + 1})`);
-      }
-
-      // Route to appropriate agent
+      // 2. Route to appropriate agent or provider
       let result: AgentResult;
 
-      switch (agentType) {
-        case 'researcher':
-          result = await researcherAgent.execute(task);
-          break;
-        default:
-          result = {
-            taskId: task.id,
-            agentType,
-            status: 'failed',
-            error: {
-              code: 'AGENT_NOT_IMPLEMENTED',
-              message: `Agent ${agentType} not yet implemented`,
-            },
-            metadata: {
-              duration: 0,
-              retries: attempt,
-            },
-          };
+      if (task.agentType === 'terminal') {
+        result = await this.terminal.execute(task);
+      } else if (task.agentType === 'researcher') {
+        result = await this.researcher.execute(task);
+      } else {
+        // Default: Route to LLM provider via Router
+        const response = await this.router.route({
+          task,
+          urgency: (task.metadata as any)?.urgency || 'medium',
+          requiresWeb: (task.metadata as any)?.requiresWeb || false,
+          requiresCode: (task.metadata as any)?.requiresCode || false,
+        });
+
+        result = {
+          taskId: task.id,
+          agentType: 'supervisor',
+          status: 'success',
+          output: response.output,
+          metadata: {
+            provider: response.provider,
+            latency: response.metadata.latency,
+            model: response.metadata.model,
+          },
+        };
       }
+
+      // 3. Log assistant response to session
+      const provider = (result.metadata as any)?.provider || 'claude';
+      this.bridge.appendMessage(provider, 'assistant', result.output as string, { taskId: task.id });
 
       return result;
     } catch (err) {
-      // Retry logic
-      if (attempt < this.config.maxRetries) {
-        if (this.config.enableLogging) {
-          console.warn(`[Supervisor] Retrying ${agentType}...`);
-        }
-        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-        return this.dispatchAgent(agentType, task, attempt + 1);
-      }
-
       return {
         taskId: task.id,
-        agentType,
+        agentType: 'supervisor',
         status: 'failed',
         error: {
-          code: 'DISPATCH_ERROR',
+          code: 'SUPERVISOR_ERROR',
           message: err instanceof Error ? err.message : String(err),
-        },
-        metadata: {
-          duration: 0,
-          retries: attempt,
         },
       };
     }
   }
 
   /**
-   * Get task log for audit trail
+   * Sync session state to a specific provider (e.g. for replay)
    */
-  getTaskLog(taskId: string): AgentResult[] | null {
-    return this.taskLog.get(taskId) || null;
+  async syncSession(provider: string) {
+    const transcript = this.bridge.getNormalizedTranscript();
+    // Implementation for provider-specific sync (e.g. Claude context window)
+    return transcript;
+  }
+
+  dispose() {
+    this.bridge.close();
   }
 }
 
-export const supervisor = new Supervisor({ enableLogging: true });
+export const createSupervisor = (config: SupervisorConfig) => new Supervisor(config);
