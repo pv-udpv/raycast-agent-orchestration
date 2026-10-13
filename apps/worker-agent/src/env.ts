@@ -1,6 +1,4 @@
-import type { RaycastOrchestratorSupervisor } from "./agent"
-
 export interface Env {
-  supervisor: DurableObjectNamespace<RaycastOrchestratorSupervisor>
+  Supervisor: DurableObjectNamespace
   PERPLEXITY_API_KEY?: string
 }

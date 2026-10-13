@@ -6,9 +6,9 @@
  */
 
 export class Agent<Env = any, State = any> {
-  protected env: Env
-  protected state: State
-  protected initialState: State
+  protected env!: Env
+  protected state!: State
+  protected initialState!: State
 
   constructor() {
     this.state = this.initialState

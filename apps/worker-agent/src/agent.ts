@@ -131,8 +131,10 @@ export class Supervisor extends Agent<Env, State> {
       })
 
       console.log("[SUPERVISOR] Phase 4: Finalization (sequential)")
+      const worktreeCommands =
+        (worktreeResult as { commands?: string[] } | null)?.commands ?? []
       const terminalResult = await this.dispatch("TerminalAgent", "executeTerminalOps", {
-        commands: worktreeResult?.commands || []
+        commands: worktreeCommands
       })
       results.terminal = terminalResult
 
