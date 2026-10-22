@@ -3,7 +3,43 @@
 **Branch:** `30-local-inference`  
 **Date:** 2026-08-27  
 **Researcher:** Researcher Agent  
-**Status:** complete
+**Status:** in-progress
+**Evidence status:** incomplete
+**Compatibility claim:** Responses text streaming was reported as smoke-tested in a prior run; this report does not establish full Responses/Codex compatibility.
+
+---
+
+## Evidence Record
+
+- **Sources:** [OpenAI Responses streaming guide](https://developers.openai.com/api/docs/guides/streaming-responses?api-mode=responses); `~/mlx-serve/anthropic_adapter.py`; `~/mlx-serve/README.md`
+- **Orchestration repository baseline inspected:** `6315bac254bc2fb423ace11ef2f84658ebb3e12d` (working tree was dirty; this is not a commit for all inspected files)
+- **Adapter artifact SHA-256:** `f750fe2d3a8b1808c5c62551d9013d903f4ec8e75f9b8acab2c13c7031f09167`
+- **Adapter README SHA-256:** `6d46a58e0a39dcab216f2d48df3438b79d83f2f94fba2005c5dde1abbb8859ac`
+- **Runtime/model:** listener `127.0.0.1:8788` responded HTTP 200 to a root probe; previous recorded test used `mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit`.
+- **Exact historical test command:** unavailable in retained run record; do not infer or reconstruct it as an executed command.
+- **Expected protocol events:** `response.created`, text delta event(s), `response.completed`, expected text and usage.
+- **Observed in the retained run summary:** those event classes and expected text/usage were reported after correcting SSE line framing. Raw event transcript/log artifact and exact command were not retained here.
+- **Evidence status:** `incomplete` for an auditable report; prior run supports only `streaming-smoke-tested`.
+- **Compatibility status:** not tested with a real Responses or Codex client; function-call streaming remains unverified. Anthropic Messages SSE is separate and unresolved.
+
+## Reproduction (proposed, not executed for this report)
+
+Run sequentially against the intended local runtime; capture stdout, stderr, exit status, and adapter/model versions. Do not run concurrent inference requests.
+
+```sh
+python3 - <<'PY'
+import json, urllib.request
+url = "http://127.0.0.1:8788/v1/responses"
+payload = {"model": "mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit", "input": "Reply with exactly: RESPONSES_STREAM_SMOKE_OK", "stream": True}
+request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+with urllib.request.urlopen(request, timeout=180) as response:
+    print("HTTP", response.status)
+    for line in response:
+        print(line.decode("utf-8", errors="replace"), end="")
+PY
+```
+
+Expected: HTTP 200; `response.created`; one or more text deltas whose concatenated text is exactly `RESPONSES_STREAM_SMOKE_OK`; `response.completed` with usage. This script is a proposed reproduction, not a claim of a newly executed test.
 
 ---
 

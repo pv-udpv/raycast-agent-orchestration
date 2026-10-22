@@ -13,6 +13,12 @@ import { withRetry, withTimeout } from "./validation"
 const SUPERVISOR_URL = process.env.SUPERVISOR_URL ?? "http://localhost:8787"
 const DEFAULT_TIMEOUT_MS = 15000
 
+export type BackendMode = "local" | "local-with-cloud-sync"
+
+export function backendMode(): BackendMode {
+  return process.env.SUPABASE_SYNC_ENABLED === "true" ? "local-with-cloud-sync" : "local"
+}
+
 async function rpc<T>(path: string, body?: unknown): Promise<T> {
   const response = await withTimeout(
     withRetry(() => fetch(`${SUPERVISOR_URL}${path}`, {
