@@ -7,7 +7,7 @@
  *   { "method": "research", "input": { ... } }
  */
 
-import { Agent, callable } from "agents"
+import { Agent } from "agents"
 
 export type RpcEnvelope = {
   method: string
@@ -19,6 +19,19 @@ export type RpcEnvelope = {
  * Base class that adds a generic RPC HTTP interface to all agents.
  */
 export class RpcEnabledAgent<Env = any, State = any> extends Agent<Env, State> {
+  protected isRpcMethod(methodName: string): boolean {
+    return [
+      "research", "plan", "normalizeTree", "mapWorktrees",
+      "executeRaycastOps", "defineRouting", "exportManifest",
+      "executeTerminalOps", "getAgentState"
+    ].includes(methodName)
+  }
+
+  /** Read-only state probe for local persistence verification and operational diagnostics. */
+  async getAgentState(_input: Record<string, unknown> = {}) {
+    return this.state
+  }
+
   async fetch(req: Request): Promise<Response> {
     try {
       const url = new URL(req.url)
@@ -54,7 +67,7 @@ export class RpcEnabledAgent<Env = any, State = any> extends Agent<Env, State> {
       }
 
       const handler = (this as any)[methodName]
-      if (typeof handler !== "function") {
+      if (typeof handler !== "function" || !this.isRpcMethod(methodName)) {
         return new Response(JSON.stringify({ error: `Unknown method: ${methodName}` }), {
           status: 404,
           headers: { "content-type": "application/json" }
@@ -81,7 +94,6 @@ export class RpcEnabledAgent<Env = any, State = any> extends Agent<Env, State> {
 export class ResearcherAgent extends RpcEnabledAgent<any, any> {
   initialState = { topic: "", findings: [] }
 
-  @callable()
   async research(input: { topic: string }) {
     console.log(`[RESEARCHER] Investigating: ${input.topic}`)
 
@@ -107,7 +119,6 @@ export class ResearcherAgent extends RpcEnabledAgent<any, any> {
 export class PlannerAgent extends RpcEnabledAgent<any, any> {
   initialState = { plan: null }
 
-  @callable()
   async plan(input: { scope: string; research?: unknown[] }) {
     console.log(`[PLANNER] Planning workload: ${input.scope}`)
 
@@ -137,7 +148,6 @@ export class PlannerAgent extends RpcEnabledAgent<any, any> {
 export class TreeAgent extends RpcEnabledAgent<any, any> {
   initialState = { treeState: null }
 
-  @callable()
   async normalizeTree(input: { chatId?: string; research?: unknown[] }) {
     console.log(`[TREE] Normalizing chat tree`)
 
@@ -158,7 +168,6 @@ export class TreeAgent extends RpcEnabledAgent<any, any> {
 export class WorktreeAgent extends RpcEnabledAgent<any, any> {
   initialState = { worktreeLayout: null }
 
-  @callable()
   async mapWorktrees(input: { plan: unknown; research?: unknown[] }) {
     console.log(`[WORKTREE] Mapping git worktrees`)
 
@@ -186,7 +195,6 @@ export class WorktreeAgent extends RpcEnabledAgent<any, any> {
 export class RaycastAgent extends RpcEnabledAgent<any, any> {
   initialState = { raycastOps: null }
 
-  @callable()
   async executeRaycastOps(input: { plan: unknown; research?: unknown[] }) {
     console.log(`[RAYCAST] Preparing Raycast operations`)
 
@@ -218,7 +226,6 @@ export class RaycastAgent extends RpcEnabledAgent<any, any> {
 export class InferenceAgent extends RpcEnabledAgent<any, any> {
   initialState = { routingPolicy: null }
 
-  @callable()
   async defineRouting(input: { available: boolean; research?: unknown[] }) {
     console.log(`[INFERENCE] Defining model routing policy`)
 
@@ -248,7 +255,6 @@ export class InferenceAgent extends RpcEnabledAgent<any, any> {
 export class ManifestAgent extends RpcEnabledAgent<any, any> {
   initialState = { manifest: null }
 
-  @callable()
   async exportManifest(input: { plan: unknown; research?: unknown[] }) {
     console.log(`[MANIFEST] Exporting tree manifest`)
 
@@ -272,7 +278,6 @@ export class ManifestAgent extends RpcEnabledAgent<any, any> {
 export class TerminalAgent extends RpcEnabledAgent<any, any> {
   initialState = { terminalOps: null }
 
-  @callable()
   async executeTerminalOps(input: { commands: string[] }) {
     console.log(`[TERMINAL] Preparing terminal operations`)
 

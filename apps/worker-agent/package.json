@@ -6,7 +6,8 @@
   "main": "src/agent.ts",
   "dependencies": {
     "agents": "workspace:*",
-    "@cloudflare/workers-types": "^4.20240919.0"
+    "@cloudflare/workers-types": "^4.20240919.0",
+    "@raycast-agent-orchestration/backend": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.2.2",
@@ -14,8 +15,11 @@
   },
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
-    "type-check": "tsc --noEmit"
+    "deploy": "pnpm run verify && wrangler deploy --dry-run --env production --outdir .wrangler/dry-run && wrangler deploy --env production",
+    "deploy:staging": "pnpm run verify && wrangler deploy --dry-run --env staging --outdir .wrangler/dry-run && wrangler deploy --env staging",
+    "test": "node --test test/*.test.ts",
+    "test:dispatch-local": "node --test test/subagent-dispatch.test.ts",
+    "type-check": "tsc --noEmit",
+    "verify": "tsc --noEmit && node --test test/*.test.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run"
   }
 }

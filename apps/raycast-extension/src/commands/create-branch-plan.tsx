@@ -54,6 +54,7 @@ export default function CreateBranchPlan() {
 function BranchPlanReview({ plan, scope }: { plan: BranchPlan; scope: string }) {
   const { pop } = useNavigation()
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const researchOffset = plan.branches.length
 
   const handleExecute = async () => {
     showToast({ style: Toast.Style.Animated, title: "Creating branches..." })
@@ -90,6 +91,33 @@ function BranchPlanReview({ plan, scope }: { plan: BranchPlan; scope: string }) 
           }
         />
       ))}
+      {plan.research?.map((item, index) => (
+        <List.Item
+          key={`research-${item.topic}`}
+          id={String(researchOffset + index)}
+          title={`Research: ${item.topic}`}
+          subtitle={`${item.evidence.status} — ${item.evidence.compatibility}`}
+          detail={{ markdown: formatResearchEvidence(item) }}
+        />
+      ))}
     </List>
   )
+}
+
+function formatResearchEvidence(item: NonNullable<BranchPlan["research"]>[number]): string {
+  const evidence = item.evidence
+  return [
+    `# ${item.topic}`,
+    `**Evidence:** ${evidence.status}`,
+    `**Compatibility:** ${evidence.compatibility}`,
+    `**Code version:** ${evidence.testedCodeVersion}`,
+    "## Sources",
+    ...(evidence.sources.length ? evidence.sources.map((source) => `- ${source}`) : ["- None recorded"]),
+    "## Commands actually run",
+    ...(evidence.commands.length ? evidence.commands.map((command) => `- \`${command}\``) : ["- None recorded"]),
+    "## Expected events",
+    ...(evidence.expectedEvents.length ? evidence.expectedEvents.map((event) => `- ${event}`) : ["- None recorded"]),
+    "## Observed events",
+    ...(evidence.observedEvents.length ? evidence.observedEvents.map((event) => `- ${event}`) : ["- None recorded"]),
+  ].join("\n\n")
 }
