@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.pv.raycast-agent.pplx-rpc-runner</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/pv/dev/raycast-agent-orchestration/scripts/pplx/rpc-bridge.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/pv/dev/raycast-agent-orchestration</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>PPLX_GROUP_CONTAINER</key><string>/Users/pv/Library/Group Containers/7S8W4W365S.ai.perplexity.macv3.shared</string>
+    <key>PPLX_DRY_RUN</key><string>1</string>
+    <key>PPLX_POLL_MS</key><string>250</string>
+    <key>PPLX_CALL_TIMEOUT_MS</key><string>30000</string>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/pplx/rpc-runner.log</string>
+  <key>StandardErrorPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/pplx/rpc-runner.error.log</string>
+  <key>Note</key><string>On-demand runner; invoked by Raycast extension. Does not run continuously.</string>
+</dict></plist>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.pv.raycast-agent.watchdog</string>
+  <key>ProgramArguments</key><array><string>/opt/homebrew/bin/node</string><string>/Users/pv/dev/raycast-agent-orchestration/scripts/workload-watchdog.mjs</string></array>
+  <key>WorkingDirectory</key><string>/Users/pv/dev/raycast-agent-orchestration</string>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+  <key>ProcessType</key><string>Background</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>WORKLOG_LOCAL_URL</key><string>http://127.0.0.1:1234</string>
+    <key>WORKLOG_LOCAL_API</key><string>lmstudio-openai</string>
+    <key>WORKLOAD_SIGNAL_SWIFT</key><string>/Users/pv/dev/raycast-agent-orchestration/scripts/workload-signal.swift</string>
+    <key>WORKLOAD_SIGNAL_BIN</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/workload-signal</string>
+    <key>WORKLOG_OVERLOAD_LOAD</key><string>1.5</string>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/watchdog.log</string>
+  <key>StandardErrorPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/watchdog.error.log</string>
+</dict></plist>

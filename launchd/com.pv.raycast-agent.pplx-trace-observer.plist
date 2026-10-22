@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.pv.raycast-agent.pplx-trace-observer</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/pv/dev/raycast-agent-orchestration/scripts/pplx/trace-observer.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/pv/dev/raycast-agent-orchestration</string>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+  <key>ProcessType</key><string>Background</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>PPLX_GROUP_CONTAINER</key><string>/Users/pv/Library/Group Containers/7S8W4W365S.ai.perplexity.macv3.shared</string>
+    <key>PPLX_TRACE_POLL_MS</key><string>1000</string>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/pplx/trace-observer.log</string>
+  <key>StandardErrorPath</key><string>/Users/pv/dev/raycast-agent-orchestration/runtime/pplx/trace-observer.error.log</string>
+</dict></plist>
