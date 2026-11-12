@@ -1,3 +1,8 @@
+> [!WARNING]
+> **Archived (2026-11-12) — superseded by the Agent Execution Fabric.**
+> This repository is read-only and kept for reference only. Its bespoke supervisor, subagents, Cloudflare Durable Objects worker, provider router and manifest system are replaced by the fabric's single dispatch core (LiteLLM + Temporal + Supabase canon) and the one `agent-fabric-dispatch` Raycast extension. The only idea carried forward is the **vault → memory projection** contract.
+> Decision record: ADR-A in the Agent Execution Fabric project plan (Notion). Do not build on this code.
+
 # Raycast Agent Orchestration
 
 A comprehensive orchestration system for managing Raycast-based chat-tree branching, git worktrees, zbst.tech subagents, local inference routing, and deterministic manifest export.
