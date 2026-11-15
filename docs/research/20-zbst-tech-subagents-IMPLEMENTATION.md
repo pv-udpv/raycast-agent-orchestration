@@ -1,7 +1,7 @@
 # Implementation: zbst.tech Subagent Orchestration
 
-**Status:** scaffolded  
-**Date:** 2026-08-27  
+**Status:** local subagent RPC wired and verified; not production-deployed
+**Date:** 2026-08-27
 **Target:** orchestrator.zbst.tech (Cloudflare Workers)
 
 ---
@@ -51,173 +51,102 @@ orchestrator.zbst.tech (Cloudflare Worker)
 
 ## Current Status
 
-### ✓ Scaffolded
+### ✓ Implemented and locally verified
 
-* Supervisor agent skeleton (agent.ts)
-* 8 subagent stubs (subagents.ts)
-* wrangler.jsonc with DO bindings
-* SUBAGENT_REGISTRY and ROUTING_MATRIX (index.ts)
-* durable_objects migration setup (v1 tag)
+* Supervisor worker routes include `POST /dispatch-subagent` and read-only `POST /subagent-state`.
+* `src/subagent-dispatch.ts` maps eight allowlisted agent names to their Durable Object bindings and RPC methods; dispatch uses a stable named DO identity, with an optional caller-provided dispatch ID.
+* Subagent `fetch()` handlers validate the RPC method allowlist. `getAgentState` is available for read-only state inspection.
+* Wrangler/Miniflare local Durable Object dispatch was exercised for all eight allowlisted agents; each returned HTTP 200. The results confirmed current handler behavior, including scaffold/planning responses, not completion of real external operations.
+* Researcher state was read before and after a Wrangler restart using the same persistence directory in a separate local persistence test.
+* Worker unit tests, TypeScript type-check, `git diff --check`, and a production-config Wrangler dry-run passed. These checks do not constitute a deployment or remote RPC test.
 
-### ⏳ Next Steps
+### ⏳ Remaining work
 
-1. **Wire routing** — connect Supervisor to actual subagent DOs
-2. **Implement @callable endpoints** — add real logic per subagent
-3. **Add persistent storage** — use SQL for orchestration history
-4. **Test locally** — wrangler dev with local DO bindings
-5. **Deploy to zbst.tech** — wrangler deploy --env production
-6. **Expose API** — POST /orchestrate, GET /state, GET /agents
+1. Implement substantive production behavior for each subagent. Several handlers remain deterministic scaffolds; the Researcher can use its configured provider path, while other integrations are not thereby verified.
+2. Decide whether orchestration history requires D1/SQL. Current verified persistence is Durable Object state storage, not the SQL schema proposed in the original draft.
+3. Add failure/retry policy and observability based on concrete idempotency requirements.
+4. Add provider-backed tests with citation-bearing responses and failure cases; current all-agent dispatch smoke used empty/static inputs and did not verify external integrations.
+5. Review auth, CORS, rate limits, and production configuration before any deployment. No staging/production deployment or remote RPC has been verified.
 
 ---
 
 ## Immediate TODOs
 
-### 1. Supervisor.callSubagent() implementation
+### 1. Broaden dispatch verification
 
-Replace stub with actual RPC invocation:
+The dispatch path now exists in `apps/worker-agent/src/subagent-dispatch.ts` and the worker exposes `POST /dispatch-subagent`. Preserve the allowlist and verify each subagent’s real behavior independently; successful generic RPC routing is not evidence that an agent performs its intended external operation.
 
-```typescript
-private async callSubagent(role: string, input: unknown): Promise<unknown> {
-  const id = this.env.d1.prepare(
-    `SELECT do_id FROM subagent_instances WHERE role = ?`
-  ).bind(role).first() as { do_id: string } | undefined
+### 2. Decide on orchestration-history storage
 
-  if (!id) throw new Error(`No instance for ${role}-agent`)
-
-  const stub = this.env[`${role}Agent`].get(id.do_id)
-  return stub.fetch("https://agent/", {
-    method: "POST",
-    body: JSON.stringify({ method: role, input })
-  })
-}
-```
-
-### 2. Add SQL schema for state tracking
+The current worker configuration declares SQLite-backed Durable Objects; it does not declare a D1 binding. The SQL schema below is a proposal only and must not be treated as deployed or usable until a storage backend, migrations, retention, and failure semantics are selected.
 
 ```sql
 CREATE TABLE orchestrations (
   id TEXT PRIMARY KEY,
   status TEXT,
   phase TEXT,
-  results JSONB,
-  errors JSONB,
+  results TEXT,
+  errors TEXT,
   created_at TEXT,
   updated_at TEXT
 );
-
-CREATE TABLE subagent_instances (
-  id TEXT PRIMARY KEY,
-  role TEXT,
-  do_id TEXT,
-  health TEXT,
-  last_heartbeat TEXT
-);
 ```
 
-### 3. Implement real subagent logic
+### 3. Replace scaffolds with bounded, real behavior
 
-Each DO should:
-* Read from SQL
-* Perform work
-* Write results back to SQL
-* Return response
+For each subagent, specify inputs, outputs, external dependencies, time/resource budgets, and evidence requirements. In particular, `TerminalAgent.executeTerminalOps` currently records commands as `ready-to-execute`; it does not execute shell commands and must not be described or used as a shell executor.
 
-Example:
+### 4. Add failure handling only with defined semantics
 
-```typescript
-@callable()
-async research(input: { topic: string }) {
-  // Dispatch to local-inference-agent for actual research
-  const findings = await this.callInferenceAgent({
-    task: "research",
-    topic: input.topic
-  })
-  
-  // Store in SQL
-  await this.sql`
-    INSERT INTO research_findings (topic, findings, created_at)
-    VALUES (${input.topic}, ${JSON.stringify(findings)}, ${new Date().toISOString()})
-  `
-  
-  return findings
-}
-```
+Define which calls are idempotent and which errors are retryable before adding retries. Persist enough operation identity to prevent duplicate side effects; do not blindly retry Raycast, terminal, or provider operations.
 
-### 4. Add error handling & retries
+### 5. Keep routes and deployment claims evidence-bounded
 
-Wrap all @callable with try/catch and retry logic:
-
-```typescript
-@callable()
-async orchestrate(input: any) {
-  try {
-    // ... work
-  } catch (err) {
-    // Log to SQL error_log
-    await this.retry(async () => {
-      // retry logic
-    }, { maxAttempts: 3, backoff: "exponential" })
-  }
-}
-```
-
-### 5. Expose HTTP endpoints
-
-```typescript
-fetch(req: Request) {
-  if (req.url.endsWith("/orchestrate")) {
-    const supervisor = this.env.Supervisor.get("singleton")
-    return supervisor.fetch(req)
-  }
-  if (req.url.endsWith("/state")) {
-    const supervisor = this.env.Supervisor.get("singleton")
-    return new Response(JSON.stringify(supervisor.state))
-  }
-  // ...
-}
-```
+`/dispatch-subagent` and `/subagent-state` are implemented worker routes. Their existence and local tests do not establish authentication posture, production reachability, or remote Durable Object behavior. Audit those separately before exposure.
 
 ---
 
 ## Testing
 
-### Local (wrangler dev)
+### Local unit and type checks
+
+```bash
+npm run test --prefix apps/worker-agent
+npm run type-check --prefix apps/worker-agent
+```
+
+### Local Durable Object integration
+
+Start Wrangler on an available loopback port other than `8787` (reserved for the local MLX service) and use a dedicated persistence directory. Set `DISPATCH_TEST_URL` to that local address to enable the dispatch integration tests. Set `DISPATCH_PERSISTED_TOPIC` only when the matching persisted state has already been seeded, for example:
+
+```bash
+DISPATCH_TEST_URL=http://127.0.0.1:<port> npm run test:dispatch-local --prefix apps/worker-agent
+```
+
+A local Miniflare/Wrangler RPC call verifies local stub dispatch only. Persistence across restart requires a state probe both before and after restarting Wrangler with the same persistence directory. Do not infer restart persistence from a successful repeated dispatch.
+
+### Build/config validation
 
 ```bash
 cd apps/worker-agent
-wrangler dev --local
-# Test at http://localhost:8787/agents/supervisor/test
+./node_modules/.bin/wrangler deploy --dry-run --outdir /tmp/rao-worker-dry-run
 ```
 
-### Integration
-
-```bash
-# Boot bootstrap-full.sh to create worktrees
-bash scripts/bootstrap-full.sh
-
-# Then deploy supervisor and run orchestration
-wrangler deploy --env staging
-curl -X POST https://orchestrator-staging.zbst.tech/orchestrate \
-  -H "content-type: application/json" \
-  -d '{"workloadScope": "00-ollama-launch-harness-research"}'
-```
+This bundles and validates the selected configuration; it does not deploy. Do not run a remote deploy or use port `8787` as part of this local verification.
 
 ---
 
 ## Deployment Checklist
 
-- [ ] wrangler.jsonc configured for zbst.tech
-- [ ] All 9 DOs registered as bindings
-- [ ] SQL schema migrated (D1 or Vectorize)
-- [ ] Health checks implemented
-- [ ] Retry logic added
-- [ ] Error logging to SQL
-- [ ] API endpoints exposed
-- [ ] CORS headers set
-- [ ] Rate limiting configured
-- [ ] Monitoring/observability setup (diagnostics_channel)
-- [ ] wrangler deploy --env production executed
-- [ ] Smoke tests pass on production
+- [x] Wrangler config declares all 9 Durable Object bindings and v1 SQLite-class migration.
+- [ ] Select and migrate orchestration-history storage if required; no D1 binding/schema is currently configured.
+- [ ] Audit authentication, CORS, and rate limits for the public routes.
+- [ ] Define retry/idempotency behavior and persistent error reporting.
+- [x] Wrangler observability is enabled in the current config; application-level event instrumentation remains unverified.
+- [ ] Review staging config and run a staging deployment only as a separately approved task.
+- [ ] Verify remote RPC and production smoke tests after an explicitly authorized deployment.
+
+A successful dry-run is a bundle/configuration check, not evidence that any remote environment is deployed or reachable.
 
 ---
 

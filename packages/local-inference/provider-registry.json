@@ -48,18 +48,18 @@
     },
     "lm-studio": {
       "id": "lm-studio",
-      "name": "LM Studio (GUI + API)",
+      "name": "LM Studio (Metal / MLX-capable runtime)",
       "tier": "local",
       "models": ["any-quantized-model"],
-      "baseUrl": "http://localhost:1234/v1",
-      "latencyBudget": 3000,
+      "baseUrl": "http://127.0.0.1:1234/v1",
+      "latencyBudget": 25000,
       "maxTokens": 4096,
       "supportsFunctions": false,
       "supportsStreaming": true,
       "costPer1kTokens": 0,
-      "installCmd": "brew install lm-studio || download from lmstudio.ai",
-      "fallbackTo": "perplexity-online",
-      "tags": ["gui", "quantized", "user-friendly"]
+      "installCmd": "Install LM Studio for macOS, enable its local server, then load a Metal-offloaded model with lms",
+      "fallbackTo": "ollama-local",
+      "tags": ["local", "apple-silicon", "metal", "quantized", "openai-compatible"]
     },
     "claude-opus": {
       "id": "claude-opus",
@@ -188,7 +188,7 @@
       "description": "Fast, accurate chat/folder state normalization",
       "budget": 2000,
       "quality": "high",
-      "routing": ["ollama-local", "mlx-local", "claude-haiku", "gpt-3.5-turbo"],
+      "routing": ["lm-studio", "ollama-local", "mlx-local", "claude-haiku", "gpt-3.5-turbo"],
       "taskType": "classification"
     },
     "research-analysis": {
@@ -204,7 +204,7 @@
       "description": "Generate and fix code",
       "budget": 5000,
       "quality": "high",
-      "routing": ["ollama-local", "codex", "gpt-4", "claude-opus"],
+      "routing": ["lm-studio", "ollama-local", "codex", "gpt-4", "claude-opus"],
       "taskType": "code"
     },
     "manifest-export": {
@@ -212,7 +212,7 @@
       "description": "Deterministic JSON/Markdown generation",
       "budget": 1500,
       "quality": "high",
-      "routing": ["mlx-local", "ollama-local", "claude-haiku", "gpt-3.5-turbo"],
+      "routing": ["lm-studio", "mlx-local", "ollama-local", "claude-haiku", "gpt-3.5-turbo"],
       "taskType": "classification"
     },
     "orchestration-dispatch": {
@@ -220,7 +220,7 @@
       "description": "Route tasks to appropriate subagents",
       "budget": 1000,
       "quality": "high",
-      "routing": ["mlx-local", "claude-haiku", "gpt-3.5-turbo"],
+      "routing": ["lm-studio", "mlx-local", "claude-haiku", "gpt-3.5-turbo"],
       "taskType": "classification"
     },
     "fallback-always": {
@@ -228,7 +228,7 @@
       "description": "Guaranteed response even if all preferred providers fail",
       "budget": 60000,
       "quality": "acceptable",
-      "routing": ["ollama-local", "mlx-local", "hf-transformers", "lm-studio", "claude-haiku", "gpt-3.5-turbo", "hf-inference-api"],
+      "routing": ["lm-studio", "ollama-local", "mlx-local", "hf-transformers", "claude-haiku", "gpt-3.5-turbo", "hf-inference-api"],
       "taskType": "fallback"
     }
   },

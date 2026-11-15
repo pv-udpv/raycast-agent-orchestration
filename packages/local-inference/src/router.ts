@@ -1,3 +1,5 @@
+import { callProviderApi } from "./provider-adapters.mjs"
+
 /**
  * Multi-Provider Inference Router
  * 
@@ -21,7 +23,7 @@ export interface ProviderConfig {
   maxTokens: number
   supportsFunctions: boolean
   supportsStreaming: boolean
-  costPer1kTokens: number
+  costPer1kTokens?: number
   fallbackTo?: string
   tags: string[]
 }
@@ -41,6 +43,7 @@ export interface InferenceRequest {
   budget?: number
   quality?: "acceptable" | "high" | "highest"
   profile?: string
+  instructions?: string
 }
 
 export interface InferenceResult {
@@ -49,8 +52,38 @@ export interface InferenceResult {
   output: string
   latency: number
   tokensUsed: number
-  cost: number
+  cost: number | null
   fallbackReason?: string
+}
+
+type ProviderApiName = "perplexity" | "openai" | "gemini" | "anthropic"
+type ProviderApiResult = { text: string }
+type ProviderApiCaller = (provider: ProviderConfig, request: InferenceRequest) => Promise<ProviderApiResult>
+
+const API_PROVIDER_BY_ID: Record<string, ProviderApiName> = {
+  "perplexity-online": "perplexity",
+  "claude-opus": "anthropic",
+  "claude-sonnet": "anthropic",
+  "claude-haiku": "anthropic",
+  "gpt-4": "openai",
+  "gpt-3.5-turbo": "openai",
+  "gemini-api": "gemini"
+}
+
+async function callConfiguredProviderApi(provider: ProviderConfig, request: InferenceRequest): Promise<ProviderApiResult> {
+  const api = API_PROVIDER_BY_ID[provider.id]
+  if (!api) {
+    throw new Error(`No provider API adapter is configured for ${provider.id}; local runtimes and coding harnesses require separate adapters`)
+  }
+  const apiKey = provider.apiKeyEnv ? process.env[provider.apiKeyEnv] : undefined
+  const result = await callProviderApi(api, {
+    model: provider.models[0],
+    prompt: request.input,
+    instructions: request.instructions,
+    maxOutputTokens: provider.maxTokens,
+    apiKey,
+  })
+  return { text: result.text }
 }
 
 /**
@@ -98,7 +131,6 @@ export async function loadProviderRegistry(): Promise<Record<string, ProviderCon
       maxTokens: 4096,
       supportsFunctions: true,
       supportsStreaming: true,
-      costPer1kTokens: 0.015,
       fallbackTo: "claude-sonnet",
       tags: ["subscription", "reasoning", "expensive"]
     },
@@ -113,7 +145,6 @@ export async function loadProviderRegistry(): Promise<Record<string, ProviderCon
       maxTokens: 4096,
       supportsFunctions: true,
       supportsStreaming: true,
-      costPer1kTokens: 0.003,
       fallbackTo: "claude-haiku",
       tags: ["subscription", "balanced"]
     },
@@ -128,7 +159,6 @@ export async function loadProviderRegistry(): Promise<Record<string, ProviderCon
       maxTokens: 4096,
       supportsFunctions: true,
       supportsStreaming: true,
-      costPer1kTokens: 0.00025,
       fallbackTo: "gpt-3.5-turbo",
       tags: ["subscription", "fast", "cheap"]
     },
@@ -143,7 +173,6 @@ export async function loadProviderRegistry(): Promise<Record<string, ProviderCon
       maxTokens: 8192,
       supportsFunctions: true,
       supportsStreaming: true,
-      costPer1kTokens: 0.03,
       fallbackTo: "gpt-3.5-turbo",
       tags: ["subscription", "code", "expensive"]
     },
@@ -158,25 +187,39 @@ export async function loadProviderRegistry(): Promise<Record<string, ProviderCon
       maxTokens: 4096,
       supportsFunctions: true,
       supportsStreaming: true,
-      costPer1kTokens: 0.0005,
       fallbackTo: "perplexity-online",
       tags: ["subscription", "fast", "cheap"]
     },
-    "perplexity-online": {
-      id: "perplexity-online",
-      name: "Perplexity",
-      tier: "hybrid",
-      models: ["perplexity-online", "perplexity-sonar-pro"],
-      baseUrl: "https://api.perplexity.ai/chat/completions",
-      apiKeyEnv: "PPLX_API_KEY",
-      latencyBudget: 5000,
-      maxTokens: 4096,
-      supportsFunctions: false,
-      supportsStreaming: true,
-      costPer1kTokens: 0.005,
-      fallbackTo: "claude-opus",
-      tags: ["hybrid", "web-search", "research"]
-    },
+    ...(process.env.PERPLEXITY_MODEL_ID ? {
+      "perplexity-online": {
+        id: "perplexity-online",
+        name: "Perplexity API",
+        tier: "hybrid" as const,
+        models: [process.env.PERPLEXITY_MODEL_ID],
+        baseUrl: "https://api.perplexity.ai/v1/agent",
+        apiKeyEnv: "PPLX_API_KEY",
+        latencyBudget: 5000,
+        maxTokens: 4096,
+        supportsFunctions: false,
+        supportsStreaming: false,
+        fallbackTo: "claude-opus",
+        tags: ["hosted-api", "research"]
+      }
+    } : {}),
+    ...(process.env.GEMINI_MODEL_ID ? {
+      "gemini-api": {
+        id: "gemini-api",
+        name: "Gemini API",
+        tier: "subscription" as const,
+        models: [process.env.GEMINI_MODEL_ID],
+        apiKeyEnv: "GEMINI_API_KEY",
+        latencyBudget: 5000,
+        maxTokens: 4096,
+        supportsFunctions: false,
+        supportsStreaming: false,
+        tags: ["hosted-api", "reasoning"]
+      }
+    } : {}),
     "hf-inference-api": {
       id: "hf-inference-api",
       name: "HF Inference API",
@@ -213,7 +256,7 @@ export function getRoutingProfiles(): Record<string, RoutingProfile> {
       description: "Deep reasoning with context",
       budget: 10000,
       quality: "highest",
-      routing: ["perplexity-online", "claude-opus", "gpt-4"],
+      routing: [...(process.env.PERPLEXITY_MODEL_ID ? ["perplexity-online"] : []), "claude-opus", "gpt-4", ...(process.env.GEMINI_MODEL_ID ? ["gemini-api"] : [])],
       taskType: "reasoning"
     },
     "code-generation": {
@@ -221,7 +264,7 @@ export function getRoutingProfiles(): Record<string, RoutingProfile> {
       description: "Generate and fix code",
       budget: 5000,
       quality: "high",
-      routing: ["ollama-local", "gpt-4", "claude-opus"],
+      routing: ["ollama-local", "gpt-4", "claude-opus", ...(process.env.GEMINI_MODEL_ID ? ["gemini-api"] : [])],
       taskType: "code"
     },
     "manifest-export": {
@@ -250,10 +293,16 @@ export class MultiProviderRouter {
   private providers: Record<string, ProviderConfig>
   private profiles: Record<string, RoutingProfile>
   private providerHealth: Map<string, { available: boolean; lastCheck: number }>
+  private providerApiCaller: ProviderApiCaller
 
-  constructor(providers: Record<string, ProviderConfig>, profiles: Record<string, RoutingProfile>) {
+  constructor(
+    providers: Record<string, ProviderConfig>,
+    profiles: Record<string, RoutingProfile>,
+    providerApiCaller: ProviderApiCaller = callConfiguredProviderApi
+  ) {
     this.providers = providers
     this.profiles = profiles
+    this.providerApiCaller = providerApiCaller
     this.providerHealth = new Map()
     
     // Initialize health status
@@ -268,6 +317,7 @@ export class MultiProviderRouter {
   async route(request: InferenceRequest): Promise<InferenceResult> {
     const profile = this.getProfile(request)
     const routingOrder = profile.routing
+    let lastFallbackReason: string | undefined
 
     for (const providerId of routingOrder) {
       const provider = this.providers[providerId]
@@ -292,17 +342,21 @@ export class MultiProviderRouter {
           providerName: provider.name,
           output: result,
           latency,
-          tokensUsed: Math.ceil(result.length / 4), // rough estimate
-          cost: Math.ceil(result.length / 4) / 1000 * provider.costPer1kTokens
+          tokensUsed: Math.ceil(result.length / 4), // rough estimate; provider token usage is not normalized here
+          cost: provider.costPer1kTokens === undefined
+            ? null
+            : Math.ceil(result.length / 4) / 1000 * provider.costPer1kTokens,
+          ...(lastFallbackReason ? { fallbackReason: lastFallbackReason } : {})
         }
       } catch (error) {
+        lastFallbackReason = error instanceof Error ? `${providerId}: ${error.message}` : `${providerId}: ${String(error)}`
         console.error(`[ROUTER] Error with ${providerId}:`, error)
         this.providerHealth.set(providerId, { available: false, lastCheck: Date.now() })
         // Continue to next provider
       }
     }
 
-    throw new Error(`[ROUTER] All providers exhausted for task: ${request.task}`)
+    throw new Error(`[ROUTER] All providers exhausted for task: ${request.task}${lastFallbackReason ? `; last error: ${lastFallbackReason}` : ""}`)
   }
 
   /**
@@ -334,10 +388,11 @@ export class MultiProviderRouter {
    * Call a specific provider
    */
   private async callProvider(provider: ProviderConfig, request: InferenceRequest): Promise<string> {
-    // Stub implementation - would branch to provider-specific clients
-    // (Claude, OpenAI, Ollama, etc.)
-    console.log(`[PROVIDER] Calling ${provider.name} with request: ${request.task}`)
-    return `[${provider.name}] Response to: ${request.input.substring(0, 50)}...`
+    const result = await this.providerApiCaller(provider, request)
+    if (typeof result?.text !== "string" || result.text.length === 0) {
+      throw new Error(`${provider.id} adapter returned no text`)
+    }
+    return result.text
   }
 
   /**
@@ -387,6 +442,6 @@ export async function example() {
   })
 
   console.log(`Used ${result.providerName} in ${result.latency}ms`)
-  console.log(`Cost: $${result.cost.toFixed(6)}`)
+  console.log(`Cost: ${result.cost === null ? "unknown" : `$${result.cost.toFixed(6)}`}`)
   console.log(`Output: ${result.output}`)
 }

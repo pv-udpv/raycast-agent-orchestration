@@ -4,6 +4,8 @@
   "main": "src/agent.ts",
   "compatibility_date": "2024-12-10",
   "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "alias": {
     "agents": "../../packages/agents/index.ts",
     "zbst-tech-subagents": "../../packages/zbst-tech/src/subagents.ts"
@@ -11,6 +13,25 @@
   "env": {
     "production": {
       "name": "raycast-agent-orchestrator-prod",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "SUPABASE_SYNC_ENABLED": "false",
+        "WATCHDOG_ENABLED": "true"
+      },
+      // durable_objects is NOT inherited by environments; must mirror the top-level list (test/wrangler-config.test.ts).
+      "durable_objects": {
+        "bindings": [
+          { "name": "supervisor", "class_name": "Supervisor" },
+          { "name": "ResearcherAgent", "class_name": "ResearcherAgent" },
+          { "name": "PlannerAgent", "class_name": "PlannerAgent" },
+          { "name": "TreeAgent", "class_name": "TreeAgent" },
+          { "name": "WorktreeAgent", "class_name": "WorktreeAgent" },
+          { "name": "RaycastAgent", "class_name": "RaycastAgent" },
+          { "name": "InferenceAgent", "class_name": "InferenceAgent" },
+          { "name": "ManifestAgent", "class_name": "ManifestAgent" },
+          { "name": "TerminalAgent", "class_name": "TerminalAgent" }
+        ]
+      },
       "routes": [
         {
           "pattern": "orchestrator.zbst.tech/*",
@@ -20,6 +41,24 @@
     },
     "staging": {
       "name": "raycast-agent-orchestrator-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "SUPABASE_SYNC_ENABLED": "false",
+        "WATCHDOG_ENABLED": "true"
+      },
+      "durable_objects": {
+        "bindings": [
+          { "name": "supervisor", "class_name": "Supervisor" },
+          { "name": "ResearcherAgent", "class_name": "ResearcherAgent" },
+          { "name": "PlannerAgent", "class_name": "PlannerAgent" },
+          { "name": "TreeAgent", "class_name": "TreeAgent" },
+          { "name": "WorktreeAgent", "class_name": "WorktreeAgent" },
+          { "name": "RaycastAgent", "class_name": "RaycastAgent" },
+          { "name": "InferenceAgent", "class_name": "InferenceAgent" },
+          { "name": "ManifestAgent", "class_name": "ManifestAgent" },
+          { "name": "TerminalAgent", "class_name": "TerminalAgent" }
+        ]
+      },
       "routes": [
         {
           "pattern": "orchestrator-staging.zbst.tech/*",
@@ -31,7 +70,7 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "Supervisor",
+        "name": "supervisor",
         "class_name": "Supervisor"
       },
       {

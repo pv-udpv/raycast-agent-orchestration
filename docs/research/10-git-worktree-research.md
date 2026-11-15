@@ -3,7 +3,9 @@
 **Branch:** `10-git-worktree`  
 **Date:** 2026-08-27  
 **Researcher:** Researcher Agent  
-**Status:** complete
+**Status:** in-progress
+**Evidence status:** incomplete
+**Evidence note:** Existing guidance has source links but no recorded tested code version, exact commands run, or expected/observed event record. Treat recommendations as proposals, not verification.
 
 ---
 

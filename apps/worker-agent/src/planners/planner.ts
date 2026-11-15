@@ -1,10 +1,11 @@
 // Planner Agent: Generate branch plan from scope + research
 
-import type { BranchPlan } from "../../../raycast-extension/src/types"
+import type { BranchPlan, ResearchResult } from "../../../raycast-extension/src/types"
 
-export function planBranches(scope: string): BranchPlan {
+export function planBranches(scope: string, research?: ResearchResult[]): BranchPlan {
   return {
     root: "00-root",
+    ...(research ? { research } : {}),
     branches: [
       {
         prefix: "10-",

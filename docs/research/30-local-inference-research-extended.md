@@ -3,7 +3,9 @@
 **Branch:** `30-local-inference`  
 **Date:** 2026-08-27  
 **Researcher:** Researcher Agent  
-**Status:** complete
+**Status:** in-progress
+**Evidence status:** incomplete
+**Evidence note:** Existing provider guidance lacks a verified code version, executed test commands, and event transcript; several provider/model/price entries may be stale. Do not use as compatibility evidence.
 
 ---
 
